@@ -220,7 +220,7 @@ Headline design decisions:
 - [x] **Cross-dataset eval — DistilBERT (HateXplain → Davidson) best transfer (AUC 0.812)**
 - [x] Live results in [`results/results.md`](results/results.md)
 - [x] arXiv-style LaTeX paper skeleton with abstract, intro, related work
-- [ ] Threshold-tuning ablation (validation-set selected operating point)
+- [x] Threshold-tuning ablation (validation-set selected operating point) — `scripts/threshold_sweep.py`, results in [`results/threshold_tuning.md`](results/threshold_tuning.md)
 - [ ] 3-seed mean ± std for all six (model, dataset) cells
 - [ ] 3-way classification appendix (hate / offensive / neither)
 - [ ] Target-group breakdown on HateXplain (race, religion, gender, …)

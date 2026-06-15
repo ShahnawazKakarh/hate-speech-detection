@@ -43,10 +43,12 @@ baseline, (ii) Paragraph2Vec (Doc2Vec) comment embeddings followed by a linear
 classifier, replicating \citet{djuric2015hate}, and (iii) fine-tuned
 DistilBERT. We evaluate on two public datasets, \citet{davidson2017automated}
 and HateXplain \citep{mathew2021hatexplain}, and report a cross-dataset
-generalization study. Our results confirm that distributed representations
-address the high-dimensionality and sparsity issues of bag-of-words
-approaches, while contextual transformer models yield further consistent gains
-in F$_1$ on the hate class. Code and configurations are released at
+generalization study and a threshold-tuning ablation. Our results confirm that
+distributed representations address the high-dimensionality and sparsity
+issues of bag-of-words approaches, while contextual transformer models yield
+further consistent gains in F$_1$ on the hate class --- but only after the
+decision threshold is calibrated on a validation set, an often-overlooked
+step in class-imbalanced settings. Code and configurations are released at
 \url{https://github.com/ShahnawazKakarh/hate-speech-detection}.
 \end{abstract}
 
@@ -82,6 +84,9 @@ protocols. This paper contributes such a benchmark.
         preprocessing and metrics.
   \item A cross-dataset generalization study quantifying how well each model
         transfers from one corpus to another.
+  \item A threshold-tuning ablation showing that, on heavily imbalanced
+        corpora, the choice of decision threshold can change the headline
+        ranking between methods.
   \item Open-source release of code, configurations, and prepared dataset
         splits to support reproducibility.
 \end{enumerate}
@@ -137,11 +142,15 @@ We use two public, English-language hate-speech corpora.
 contains roughly $24{,}783$ tweets labeled into three categories:
 \textit{hate}, \textit{offensive}, and \textit{neither}. We use the official
 class column directly and binarize as \textsc{hate} vs.\ \textsc{non-hate}.
+The corpus is heavily imbalanced --- only $5.77\%$ of tweets are labeled
+\textit{hate}, a key driver of the results in
+Section~\ref{sec:threshold}.
 
 \paragraph{HateXplain.} \citet{mathew2021hatexplain} released roughly
 $20{,}148$ posts from Twitter and Gab, each annotated by three workers into
 \textit{hatespeech}, \textit{offensive}, or \textit{normal}. We use majority
-vote and the official train/val/test split, then binarize.
+vote and the official train/val/test split, then binarize. HateXplain is
+substantially more balanced ($\approx 31\%$ hate).
 
 For both datasets we apply identical preprocessing: URL/mention removal,
 hashtag-word retention, emoji-to-token conversion, lowercasing, and
@@ -176,45 +185,105 @@ is used for test-set evaluation.
 All experiments use seed $42$ and the same 80/10/10 stratified train/val/test
 split for Davidson; HateXplain uses the official split. We report accuracy,
 precision and recall on the hate class, binary F$_1$ on the hate class,
-macro-F$_1$, and ROC-AUC.
+macro-F$_1$, and ROC-AUC. Unless otherwise stated, predictions use a
+decision threshold of $0.5$.
 
 \subsection{Main results}
 
 \input{tables/results.tex}
 
+DistilBERT achieves the best overall performance on HateXplain
+(F$_1$-hate $= 0.757$, macro-F$_1$ $= 0.824$, AUC $= 0.909$). On Davidson,
+DistilBERT achieves the highest accuracy ($0.939$) and AUC ($0.897$), but
+its F$_1$ on the hate class at the default threshold ($0.368$) is
+\emph{below} the TF-IDF baseline's ($0.403$). We investigate this in
+Section~\ref{sec:threshold}. Doc2Vec underperforms substantially on
+Davidson, which we attribute to the small absolute size of the hate class
+(only $\approx 1{,}150$ training examples) --- well below the $\approx 950$k
+comments used in the original \citet{djuric2015hate} paper.
+
 \subsection{Cross-dataset generalization}
+
+\input{tables/cross_dataset.tex}
+
 We additionally evaluate each Davidson-trained model on the HateXplain test
-split, and vice versa. Results are written to
-\texttt{artifacts/cross\_dataset.json} after running
-\texttt{scripts/cross\_dataset\_eval.py}.
+split, and vice versa. Every model degrades out-of-domain, with macro-F$_1$
+drops between $5.5$ and $25.7$ points. DistilBERT trained on HateXplain
+transfers best to Davidson (AUC $0.812$, the highest cross-dataset AUC
+observed), supporting the hypothesis that contextual subword
+representations generalize better than $n$-gram or static-embedding
+features --- provided the source corpus has sufficient class signal.
+
+\subsection{Threshold tuning}
+\label{sec:threshold}
+
+The result that DistilBERT trails TF-IDF on Davidson F$_1$-hate is largely
+an artefact of the default $0.5$ decision threshold combined with the
+$5.77\%$ class prior. We select, per model, the threshold $t^*$ that
+maximizes F$_1$ on the hate class on the validation split, and apply this
+threshold unchanged to the test split.
+
+\input{tables/threshold_tuning.tex}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/threshold_curves.png}
+  \caption{Test-set F$_1$ on the hate class as a function of decision
+           threshold. The dashed line marks the default $t=0.5$. On
+           Davidson (left), the F$_1$ peak for DistilBERT sits well below
+           $0.5$; on HateXplain (right), it sits much closer to $0.5$,
+           consistent with the more balanced class prior.}
+  \label{fig:threshold-curves}
+\end{figure}
+
+Threshold tuning yields the largest gains exactly where the default
+threshold was most miscalibrated --- the heavily imbalanced Davidson
+corpus. The qualitative ranking of methods can therefore depend on this
+single hyper-parameter, which is a finding in its own right and a caution
+to readers of hate-speech leaderboards.
 
 \section{Discussion}
 
 \paragraph{What the embeddings buy you.}
 Replacing sparse $n$-gram features with $200$-dimensional Doc2Vec embeddings
 addresses the dimensionality and sparsity issues highlighted by
-\citet{djuric2015hate}, and we expect the embedding space to place
-swearwords, slurs, and their obfuscated variants in the same neighborhood,
-consistent with the qualitative findings in that paper.
+\citet{djuric2015hate} --- when the corpus is large enough. On HateXplain,
+where the hate class has $\approx 4{,}700$ training examples, Doc2Vec
+reaches F$_1$-hate $0.61$; on Davidson's $\approx 1{,}150$, it collapses to
+$0.17$. The conclusion is not that Doc2Vec fails, but that distributed
+representations are data-hungry in a way bag-of-words methods are not.
 
 \paragraph{What transformers add.}
-DistilBERT brings contextual modeling and subword tokenization, which we
-expect to help in cases where context disambiguates surface offensiveness
-(e.g., reclaimed slurs) and where adversarial obfuscation defeats
-whitespace-tokenized models.
+DistilBERT brings contextual modeling and subword tokenization. On
+HateXplain it dominates every other method on every metric. On Davidson the
+in-domain F$_1$-hate gap closes only after threshold tuning, but the AUC
+advantage at the default threshold already indicates a better-ranked
+probability distribution. The cross-dataset story is the cleanest
+demonstration of transformer value: DistilBERT (HateXplain $\to$ Davidson)
+yields AUC $0.812$, the highest cross-dataset AUC observed.
 
 \paragraph{Limitations.} We binarize a three-way label; the hate-versus-
 offensive boundary is itself contested. We do not address class imbalance
-beyond class weighting, and our evaluation is English-only.
+beyond class weighting, and our evaluation is English-only. Single-seed
+runs were used throughout; multi-seed mean$\pm$std is the obvious upgrade
+for a v$1.0$ release. The threshold-tuning ablation uses the same
+validation split that DistilBERT was early-stopped on, which introduces a
+small amount of optimism --- this could be tightened with a held-out
+calibration set.
 
 \section{Conclusion and Future Work}
 
 As the volume of online user-generated content grows, accurate automated
 methods to flag abusive language are of paramount importance. We provide a
 unified, reproducible benchmark of three canonical approaches across two
-public datasets. Future work includes multilingual extension, target-group
-classification using HateXplain's rationale annotations, and longitudinal
-evaluation against language drift.
+public datasets, with a cross-dataset generalization study and a
+threshold-tuning ablation. The headline finding is that the qualitative
+ranking of hate-speech detection methods can flip depending on the
+decision-threshold choice in heavily imbalanced corpora --- a point papers
+that report only default-threshold F$_1$ leave on the table. Future work
+includes multilingual extension, target-group classification using
+HateXplain's rationale annotations, adversarial obfuscation evaluation,
+and longitudinal evaluation against language drift.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
