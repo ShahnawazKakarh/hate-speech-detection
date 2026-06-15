@@ -33,6 +33,7 @@ dependencies = [
     "requests>=2.31",
     "wandb>=0.16",
     "tabulate>=0.9",
+    "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -45,6 +46,7 @@ dev = [
     "jupyter>=1.0",
     "matplotlib>=3.8",
     "seaborn>=0.13",
+    "pre-commit>=3.7",
 ]
 
 [project.scripts]

@@ -9,6 +9,7 @@ Usage:
     python -m hsd.data.prepare --dataset hatexplain
     python -m hsd.data.prepare --dataset all
 """
+
 from __future__ import annotations
 
 import json
@@ -27,9 +28,7 @@ DAVIDSON_URL = (
     "https://raw.githubusercontent.com/t-davidson/"
     "hate-speech-and-offensive-language/master/data/labeled_data.csv"
 )
-HATEXPLAIN_URL = (
-    "https://raw.githubusercontent.com/hate-alert/HateXplain/master/Data/dataset.json"
-)
+HATEXPLAIN_URL = "https://raw.githubusercontent.com/hate-alert/HateXplain/master/Data/dataset.json"
 HATEXPLAIN_SPLIT_URL = (
     "https://raw.githubusercontent.com/hate-alert/HateXplain/master/Data/post_id_divisions.json"
 )
@@ -70,7 +69,10 @@ def prepare_davidson(seed: int = 42) -> None:
     test.to_parquet(out / "test.parquet", index=False)
     log.info(
         "davidson prepared: train=%d val=%d test=%d  hate_pct=%.2f%%",
-        len(train), len(val), len(test), 100 * df["label"].mean(),
+        len(train),
+        len(val),
+        len(test),
+        100 * df["label"].mean(),
     )
 
 

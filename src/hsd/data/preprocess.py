@@ -3,6 +3,7 @@
 Light-touch normalization shared across all three models. Each model can apply
 additional model-specific preprocessing (e.g., tokenization for transformers).
 """
+
 from __future__ import annotations
 
 import re

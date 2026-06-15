@@ -1,6 +1,6 @@
 """Tests for model wrappers (smoke tests on tiny synthetic data)."""
-import pytest
 
+import pytest
 from hsd.models.tfidf import TfidfConfig, build_tfidf_pipeline
 
 

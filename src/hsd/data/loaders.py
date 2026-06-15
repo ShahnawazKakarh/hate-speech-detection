@@ -1,4 +1,5 @@
 """Unified dataset loader returning train/val/test splits as pandas DataFrames."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -54,6 +55,9 @@ def load_dataset(name: str, *, preprocess: bool = True) -> Splits:
     )
     log.info(
         "loaded %s: train=%d val=%d test=%d",
-        name, len(splits.train), len(splits.val), len(splits.test),
+        name,
+        len(splits.train),
+        len(splits.val),
+        len(splits.test),
     )
     return splits

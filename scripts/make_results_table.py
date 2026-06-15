@@ -4,6 +4,7 @@ Reads ``artifacts/<run_name>/metrics.json`` and emits:
   - paper/tables/results.md
   - paper/tables/results.tex
 """
+
 from __future__ import annotations
 
 import json

@@ -8,6 +8,7 @@ the learned comment vectors.
 For unseen texts at inference time, gensim's ``infer_vector`` performs the
 "folding-in" step described in the paper.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -55,7 +56,7 @@ class Doc2VecClassifier:
         self.clf: LogisticRegression | None = None
 
     # ------------------------------------------------------------------ #
-    def fit(self, texts: list[str], labels: list[int]) -> "Doc2VecClassifier":
+    def fit(self, texts: list[str], labels: list[int]) -> Doc2VecClassifier:
         c = self.cfg
         corpus = _tagged_corpus(texts)
 
@@ -106,7 +107,7 @@ class Doc2VecClassifier:
         joblib.dump(self.clf, path / "clf.joblib")
 
     @classmethod
-    def load(cls, path: str | Path, cfg: Doc2VecConfig | None = None) -> "Doc2VecClassifier":
+    def load(cls, path: str | Path, cfg: Doc2VecConfig | None = None) -> Doc2VecClassifier:
         path = Path(path)
         obj = cls(cfg or Doc2VecConfig())
         obj.d2v = Doc2Vec.load(str(path / "doc2vec.bin"))

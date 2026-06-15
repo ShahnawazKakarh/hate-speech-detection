@@ -1,4 +1,5 @@
 """TF-IDF + Logistic Regression baseline."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

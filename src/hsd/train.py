@@ -3,6 +3,7 @@
 Usage:
     python -m hsd.train --config configs/tfidf_davidson.yaml
 """
+
 from __future__ import annotations
 
 import json

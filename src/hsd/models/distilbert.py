@@ -1,4 +1,5 @@
 """DistilBERT fine-tuning for binary hate-speech classification."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -90,11 +91,9 @@ class DistilBertClassifier:
         train_labels: list[int],
         val_texts: list[str] | None = None,
         val_labels: list[int] | None = None,
-    ) -> "DistilBertClassifier":
+    ) -> DistilBertClassifier:
         c = self.cfg
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            c.model_name, num_labels=2
-        )
+        self.model = AutoModelForSequenceClassification.from_pretrained(c.model_name, num_labels=2)
 
         train_ds = _TextDataset(train_texts, train_labels, self.tokenizer, c.max_length)
         val_ds = (
@@ -171,7 +170,7 @@ class DistilBertClassifier:
         self.tokenizer.save_pretrained(path)
 
     @classmethod
-    def load(cls, path: str | Path, cfg: DistilBertConfig | None = None) -> "DistilBertClassifier":
+    def load(cls, path: str | Path, cfg: DistilBertConfig | None = None) -> DistilBertClassifier:
         path = Path(path)
         cfg = cfg or DistilBertConfig()
         cfg.model_name = str(path)
