@@ -1,0 +1,16 @@
+run_name: tfidf_hatexplain
+model_type: tfidf
+dataset: hatexplain
+seed: 42
+wandb: false
+wandb_project: hate-speech-detection
+wandb_entity: qapulsebysk
+model:
+  ngram_min: 1
+  ngram_max: 2
+  max_features: 50000
+  min_df: 2
+  sublinear_tf: true
+  C: 1.0
+  max_iter: 1000
+  class_weight: balanced

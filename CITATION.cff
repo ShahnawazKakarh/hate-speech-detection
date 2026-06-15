@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software or the accompanying paper, please cite it as below."
+title: "Benchmarking Classical, Embedding-Based, and Transformer Approaches for Hate Speech Detection in Online Comments"
+version: 0.1.0
+date-released: 2026-06-15
+authors:
+  - family-names: Khan
+    given-names: Shahnawaz
+    email: shahnawaz.jrw@gmail.com
+    orcid: "https://orcid.org/0009-0007-4055-6563"
+license: MIT
+repository-code: "https://github.com/ShahnawazKakarh/hate-speech-detection"
+url: "https://skakarh.com"
+keywords:
+  - hate speech detection
+  - text classification
+  - nlp
+  - distilbert
+  - doc2vec
+  - paragraph2vec
+  - transformers
+preferred-citation:
+  type: article
+  title: "Benchmarking Classical, Embedding-Based, and Transformer Approaches for Hate Speech Detection in Online Comments"
+  authors:
+    - family-names: Khan
+      given-names: Shahnawaz
+  year: 2026
+  url: "https://github.com/ShahnawazKakarh/hate-speech-detection"

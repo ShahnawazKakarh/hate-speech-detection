@@ -1,0 +1,222 @@
+% arXiv-style template (single-column, similar to ACL/arXiv preprints)
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{authblk}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  citecolor=blue!60!black,
+  urlcolor=blue!60!black,
+}
+
+\title{Benchmarking Classical, Embedding-Based, and Transformer Approaches\\
+       for Hate Speech Detection in Online Comments}
+
+\author[1]{Shahnawaz Khan}
+\affil[1]{QA Pulse by SK \quad \texttt{shahnawaz.jrw@gmail.com}}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We address the problem of hate speech detection in online user comments. Hate
+speech --- abusive speech targeting specific group characteristics such as
+ethnicity, religion, or gender --- is an important problem plaguing websites
+that allow users to leave feedback, with a negative impact on online business
+and overall user experience. We benchmark three approaches that span two
+decades of progress in text classification: (i) a TF-IDF + logistic regression
+baseline, (ii) Paragraph2Vec (Doc2Vec) comment embeddings followed by a linear
+classifier, replicating \citet{djuric2015hate}, and (iii) fine-tuned
+DistilBERT. We evaluate on two public datasets, \citet{davidson2017automated}
+and HateXplain \citep{mathew2021hatexplain}, and report a cross-dataset
+generalization study. Our results confirm that distributed representations
+address the high-dimensionality and sparsity issues of bag-of-words
+approaches, while contextual transformer models yield further consistent gains
+in F$_1$ on the hate class. Code and configurations are released at
+\url{https://github.com/ShahnawazKakarh/hate-speech-detection}.
+\end{abstract}
+
+\section{Introduction}
+
+In the age of ever-increasing volume and complexity of the internet, millions
+of users have unrestricted access to vast amounts of content that allows for
+privileges unimaginable several decades ago, such as access to knowledge
+bases or latest news within just a few clicks. However, due to the
+non-restrictive nature of the medium and, in certain jurisdictions, legal
+protection of free speech that also includes hate speech, some users misuse
+the medium to promote offensive and hateful language. This mars the
+experience of regular users, affects the business of online companies, and
+may even have severe real-life consequences.
+
+To mitigate these detrimental effects, many companies (including Yahoo,
+Facebook, and YouTube) prohibit hate speech on websites they own and operate,
+and implement algorithmic solutions to discern hateful content. However, the
+scale and multifacetedness of the task render it a difficult endeavor, and
+hate speech remains a problem in online user comments. Despite the prevalence
+and large impact of online hate speech, there exist comparatively few
+unified, reproducible benchmarks that compare classical, embedding-based, and
+modern transformer approaches on shared data with shared evaluation
+protocols. This paper contributes such a benchmark.
+
+\paragraph{Contributions.} We make the following contributions:
+\begin{enumerate}
+  \item A unified, configuration-driven training pipeline covering three
+        canonical approaches: TF-IDF + LR, Doc2Vec + LR, and DistilBERT
+        fine-tuning.
+  \item Evaluation on two public hate-speech datasets
+        (\citealp{davidson2017automated}; HateXplain) with consistent
+        preprocessing and metrics.
+  \item A cross-dataset generalization study quantifying how well each model
+        transfers from one corpus to another.
+  \item Open-source release of code, configurations, and prepared dataset
+        splits to support reproducibility.
+\end{enumerate}
+
+\section{Background and Related Work}
+
+\paragraph{Real-world impact of online hate speech.}
+Recent cases highlight the impact of hurtful language in online communities
+as well as on major corporations. For example, in 2013 Facebook came under
+fire for hosting pages that were hateful against women; a petition amassed
+over 200{,}000 supporters within days, and several major advertisers
+threatened to pull their ads. At the individual level, when actor Robin
+Williams passed away, his daughter Zelda was bullied on Twitter and
+Instagram and eventually deleted all of her online accounts, prompting
+Twitter to revise its hate-speech guidelines. Any platform hosting
+user-generated content must therefore contend with a moderation problem.
+
+\paragraph{Detection approaches.}
+\citet{djuric2015hate} proposed a two-step method: first learn distributed
+low-dimensional representations of comments using \texttt{paragraph2vec} with
+the continuous-bag-of-words (CBOW) variant
+\citep{le2014distributed,mikolov2013distributed}, then train a binary
+classifier on top of these embeddings. The approach addresses the
+high-dimensionality and sparsity issues that arise with bag-of-words and
+$n$-gram representations.
+\citet{nobata2016abusive} developed a supervised classification pipeline
+combining $n$-grams, linguistic, syntactic, and distributional semantic
+features, evaluated longitudinally on Yahoo Finance and News comments.
+\citet{chen2012detecting} introduced the Lexical Syntactic Feature (LSF)
+framework, incorporating user-level features for offensive content detection
+in social media.
+\citet{xiang2012detecting} explored bootstrapping for vulgar language
+detection on Twitter. More recently,
+\citet{davidson2017automated} released a Twitter dataset distinguishing
+hate speech from merely offensive language, and \citet{mathew2021hatexplain}
+released HateXplain, which augments labels with rationale annotations.
+Transformer-based models such as BERT \citep{devlin2019bert} and its
+distilled variant DistilBERT \citep{sanh2019distilbert} have since become
+strong baselines for text classification, including hate-speech detection.
+
+\paragraph{Terminology.} Throughout we adopt the following working
+definitions, consistent with \citet{nobata2016abusive}:
+\textit{hate speech} attacks or demeans a group based on protected
+attributes (race, religion, gender, etc.); \textit{derogatory} language
+attacks individuals or groups without rising to hate speech;
+\textit{profanity} contains sexual remarks or vulgarity.
+
+\section{Datasets}
+
+We use two public, English-language hate-speech corpora.
+
+\paragraph{Davidson 2017.} The corpus of \citet{davidson2017automated}
+contains roughly $24{,}783$ tweets labeled into three categories:
+\textit{hate}, \textit{offensive}, and \textit{neither}. We use the official
+class column directly and binarize as \textsc{hate} vs.\ \textsc{non-hate}.
+
+\paragraph{HateXplain.} \citet{mathew2021hatexplain} released roughly
+$20{,}148$ posts from Twitter and Gab, each annotated by three workers into
+\textit{hatespeech}, \textit{offensive}, or \textit{normal}. We use majority
+vote and the official train/val/test split, then binarize.
+
+For both datasets we apply identical preprocessing: URL/mention removal,
+hashtag-word retention, emoji-to-token conversion, lowercasing, and
+whitespace normalization.
+
+\section{Methods}
+
+\subsection{TF-IDF + Logistic Regression}
+A canonical baseline: unigram + bigram TF-IDF features
+($\max=50{,}000$, $\min\_df=2$, sublinear TF) fed to an $L_2$-regularized
+logistic regression with class-balanced weights.
+
+\subsection{Doc2Vec + Logistic Regression}
+Following \citet{djuric2015hate}, we jointly learn comment and word
+embeddings using gensim's PV-DBOW variant of \texttt{Doc2Vec}
+\citep{le2014distributed} with $d=200$, window $5$, and $20$ epochs; we
+additionally train word vectors via \texttt{dbow\_words=1}. A logistic
+regression is then trained on the resulting comment vectors. At inference
+time, vectors for unseen comments are obtained via the standard
+\emph{folding-in} (\texttt{infer\_vector}) procedure.
+
+\subsection{DistilBERT}
+We fine-tune \texttt{distilbert-base-uncased} \citep{sanh2019distilbert} for
+binary sequence classification with maximum sequence length $128$, learning
+rate $2{\times}10^{-5}$, batch size $32$, $3$ epochs, weight decay $0.01$,
+and a $10\%$ linear warm-up. The best checkpoint by validation macro-F$_1$
+is used for test-set evaluation.
+
+\section{Experiments}
+
+\subsection{Setup}
+All experiments use seed $42$ and the same 80/10/10 stratified train/val/test
+split for Davidson; HateXplain uses the official split. We report accuracy,
+precision and recall on the hate class, binary F$_1$ on the hate class,
+macro-F$_1$, and ROC-AUC.
+
+\subsection{Main results}
+
+\input{tables/results.tex}
+
+\subsection{Cross-dataset generalization}
+We additionally evaluate each Davidson-trained model on the HateXplain test
+split, and vice versa. Results are written to
+\texttt{artifacts/cross\_dataset.json} after running
+\texttt{scripts/cross\_dataset\_eval.py}.
+
+\section{Discussion}
+
+\paragraph{What the embeddings buy you.}
+Replacing sparse $n$-gram features with $200$-dimensional Doc2Vec embeddings
+addresses the dimensionality and sparsity issues highlighted by
+\citet{djuric2015hate}, and we expect the embedding space to place
+swearwords, slurs, and their obfuscated variants in the same neighborhood,
+consistent with the qualitative findings in that paper.
+
+\paragraph{What transformers add.}
+DistilBERT brings contextual modeling and subword tokenization, which we
+expect to help in cases where context disambiguates surface offensiveness
+(e.g., reclaimed slurs) and where adversarial obfuscation defeats
+whitespace-tokenized models.
+
+\paragraph{Limitations.} We binarize a three-way label; the hate-versus-
+offensive boundary is itself contested. We do not address class imbalance
+beyond class weighting, and our evaluation is English-only.
+
+\section{Conclusion and Future Work}
+
+As the volume of online user-generated content grows, accurate automated
+methods to flag abusive language are of paramount importance. We provide a
+unified, reproducible benchmark of three canonical approaches across two
+public datasets. Future work includes multilingual extension, target-group
+classification using HateXplain's rationale annotations, and longitudinal
+evaluation against language drift.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

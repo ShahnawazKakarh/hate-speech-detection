@@ -1,0 +1,22 @@
+run_name: doc2vec_davidson
+model_type: doc2vec
+dataset: davidson
+seed: 42
+wandb: false
+wandb_project: hate-speech-detection
+wandb_entity: qapulsebysk
+model:
+  vector_size: 200
+  window: 5
+  min_count: 2
+  epochs: 20
+  dm: 0  # PV-DBOW per Djuric et al.
+  dbow_words: 1
+  negative: 5
+  sample: 0.0001
+  workers: 4
+  seed: 42
+  C: 1.0
+  max_iter: 1000
+  class_weight: balanced
+  infer_steps: 50
