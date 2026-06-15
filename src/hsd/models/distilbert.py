@@ -19,6 +19,7 @@ from transformers import (
 @dataclass
 class DistilBertConfig:
     model_name: str = "distilbert-base-uncased"
+    num_labels: int = 2
     max_length: int = 128
     learning_rate: float = 2e-5
     batch_size: int = 32
@@ -58,10 +59,13 @@ def _metrics(eval_pred):
 
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
-    return {
-        "f1_macro": f1_score(labels, preds, average="macro"),
-        "f1_binary": f1_score(labels, preds, average="binary", pos_label=1),
-    }
+    n_classes = int(max(int(np.max(labels)), int(np.max(preds))) + 1)
+    out = {"f1_macro": float(f1_score(labels, preds, average="macro", zero_division=0))}
+    if n_classes == 2:
+        out["f1_binary"] = float(
+            f1_score(labels, preds, average="binary", pos_label=1, zero_division=0)
+        )
+    return out
 
 
 def _trainer_kwargs_for_tokenizer(tokenizer) -> dict:
@@ -93,7 +97,9 @@ class DistilBertClassifier:
         val_labels: list[int] | None = None,
     ) -> DistilBertClassifier:
         c = self.cfg
-        self.model = AutoModelForSequenceClassification.from_pretrained(c.model_name, num_labels=2)
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            c.model_name, num_labels=c.num_labels
+        )
 
         train_ds = _TextDataset(train_texts, train_labels, self.tokenizer, c.max_length)
         val_ds = (

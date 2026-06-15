@@ -36,7 +36,7 @@ ruff check src tests
 
 ## Code style
 
-- Black + Ruff (configured in `pyproject.toml`). Run `ruff format` and `ruff check --fix` before committing.
+- Ruff is the single source of truth for lint + formatting (configured in `pyproject.toml`). Run `ruff format` and `ruff check --fix` before committing.
 - Type hints encouraged on public functions.
 - Tests required for new utilities; smoke tests at minimum for new models.
 

@@ -380,6 +380,25 @@ includes multilingual extension, target-group classification using
 HateXplain's rationale annotations, adversarial obfuscation evaluation,
 and longitudinal evaluation against language drift.
 
+\appendix
+
+\section{Three-way classification results}
+\label{app:3way}
+
+The headline tables in Section~\ref{sec:results} binarise both corpora into
+\textsc{hate} vs \textsc{non-hate}. For completeness, we also train every
+(model, dataset) configuration in the original three-way setup
+(hate / offensive / neither-or-normal) using the same hyper-parameters, seed,
+and preprocessing, with \texttt{argmax} as the decision rule.
+
+\input{tables/results_3way.tex}
+
+The per-class F$_1$ values make explicit a point that is implicit in the
+binary results: the boundary between \emph{hate} and \emph{offensive} is
+the hardest one to learn, and accounts for a large fraction of the
+remaining error budget on both corpora. The qualitative model ranking is
+preserved: DistilBERT $>$ TF-IDF $>$ Doc2Vec.
+
 \bibliographystyle{plainnat}
 \bibliography{references}
 

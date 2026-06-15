@@ -42,7 +42,7 @@ def build_tfidf_pipeline(cfg: TfidfConfig) -> Pipeline:
                     C=cfg.C,
                     max_iter=cfg.max_iter,
                     class_weight=cfg.class_weight,
-                    solver="liblinear",
+                    solver="lbfgs",
                     n_jobs=None,
                 ),
             ),

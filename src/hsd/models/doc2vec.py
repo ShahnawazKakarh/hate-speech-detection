@@ -81,7 +81,7 @@ class Doc2VecClassifier:
             C=c.C,
             max_iter=c.max_iter,
             class_weight=c.class_weight,
-            solver="liblinear",
+            solver="lbfgs",
         ).fit(X, labels)
         return self
 

@@ -1,0 +1,18 @@
+run_name: distilbert_davidson_3way
+model_type: distilbert
+dataset: davidson
+task: multiclass
+seed: 42
+wandb: false
+model:
+  model_name: distilbert-base-uncased
+  max_length: 128
+  learning_rate: 2.0e-5
+  batch_size: 32
+  eval_batch_size: 64
+  epochs: 3
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  seed: 42
+  fp16: false
+  report_to: none
