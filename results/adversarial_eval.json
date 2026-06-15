@@ -1,0 +1,296 @@
+{
+  "metrics": {
+    "tfidf_davidson": {
+      "clean": {
+        "accuracy": 0.9043969342476805,
+        "precision": 0.31496062992125984,
+        "recall": 0.5594405594405595,
+        "f1_binary": 0.40302267002518893,
+        "f1_macro": 0.6755301905267361,
+        "roc_auc": 0.8566253951527925,
+        "confusion": [
+          [
+            2162,
+            174
+          ],
+          [
+            63,
+            80
+          ]
+        ]
+      },
+      "obfuscated": {
+        "accuracy": 0.8882613957240822,
+        "precision": 0.1981981981981982,
+        "recall": 0.3076923076923077,
+        "f1_binary": 0.2410958904109589,
+        "f1_macro": 0.5903933621442994,
+        "roc_auc": 0.7435188954880736,
+        "confusion": [
+          [
+            2158,
+            178
+          ],
+          [
+            99,
+            44
+          ]
+        ]
+      },
+      "delta_f1_hate": -0.16192677961423002,
+      "delta_f1_macro": -0.08513682838243675,
+      "delta_auc": -0.11310649966471886
+    },
+    "doc2vec_davidson": {
+      "clean": {
+        "accuracy": 0.5574828559903187,
+        "precision": 0.09438775510204081,
+        "recall": 0.7762237762237763,
+        "f1_binary": 0.1683093252463988,
+        "f1_macro": 0.4334264405841777,
+        "roc_auc": 0.7219411581569115,
+        "confusion": [
+          [
+            1271,
+            1065
+          ],
+          [
+            32,
+            111
+          ]
+        ]
+      },
+      "obfuscated": {
+        "accuracy": 0.6103267446551028,
+        "precision": 0.08223350253807106,
+        "recall": 0.5664335664335665,
+        "f1_binary": 0.14361702127659576,
+        "f1_macro": 0.4456988500638853,
+        "roc_auc": 0.607969513363349,
+        "confusion": [
+          [
+            1432,
+            904
+          ],
+          [
+            62,
+            81
+          ]
+        ]
+      },
+      "delta_f1_hate": -0.024692303969803042,
+      "delta_f1_macro": 0.012272409479707647,
+      "delta_auc": -0.11397164479356248
+    },
+    "distilbert_davidson": {
+      "clean": {
+        "accuracy": 0.9390883420734167,
+        "precision": 0.4583333333333333,
+        "recall": 0.3076923076923077,
+        "f1_binary": 0.3682008368200837,
+        "f1_macro": 0.6681012660472532,
+        "roc_auc": 0.8965552854679566,
+        "confusion": [
+          [
+            2284,
+            52
+          ],
+          [
+            99,
+            44
+          ]
+        ]
+      },
+      "obfuscated": {
+        "accuracy": 0.9378781766841469,
+        "precision": 0.3225806451612903,
+        "recall": 0.06993006993006994,
+        "f1_binary": 0.11494252873563218,
+        "f1_macro": 0.5413759466420636,
+        "roc_auc": 0.7732601302806782,
+        "confusion": [
+          [
+            2315,
+            21
+          ],
+          [
+            133,
+            10
+          ]
+        ]
+      },
+      "delta_f1_hate": -0.2532583080844515,
+      "delta_f1_macro": -0.1267253194051896,
+      "delta_auc": -0.1232951551872784
+    },
+    "tfidf_hatexplain": {
+      "clean": {
+        "accuracy": 0.827962577962578,
+        "precision": 0.706436420722135,
+        "recall": 0.7575757575757576,
+        "f1_binary": 0.7311129163281884,
+        "f1_macro": 0.8023161066165206,
+        "roc_auc": 0.8917103364471787,
+        "confusion": [
+          [
+            1143,
+            187
+          ],
+          [
+            144,
+            450
+          ]
+        ]
+      },
+      "obfuscated": {
+        "accuracy": 0.7375259875259875,
+        "precision": 0.6167979002624672,
+        "recall": 0.3956228956228956,
+        "f1_binary": 0.48205128205128206,
+        "f1_macro": 0.6531384151293653,
+        "roc_auc": 0.750330371383003,
+        "confusion": [
+          [
+            1184,
+            146
+          ],
+          [
+            359,
+            235
+          ]
+        ]
+      },
+      "delta_f1_hate": -0.24906163427690636,
+      "delta_f1_macro": -0.14917769148715532,
+      "delta_auc": -0.14137996506417572
+    },
+    "doc2vec_hatexplain": {
+      "clean": {
+        "accuracy": 0.6990644490644491,
+        "precision": 0.5083426028921023,
+        "recall": 0.7693602693602694,
+        "f1_binary": 0.6121902210314802,
+        "f1_macro": 0.6831651742100077,
+        "roc_auc": 0.7955887192729298,
+        "confusion": [
+          [
+            888,
+            442
+          ],
+          [
+            137,
+            457
+          ]
+        ]
+      },
+      "obfuscated": {
+        "accuracy": 0.6943866943866944,
+        "precision": 0.504950495049505,
+        "recall": 0.5151515151515151,
+        "f1_binary": 0.51,
+        "f1_macro": 0.6439728096676738,
+        "roc_auc": 0.6896331738437003,
+        "confusion": [
+          [
+            1030,
+            300
+          ],
+          [
+            288,
+            306
+          ]
+        ]
+      },
+      "delta_f1_hate": -0.10219022103148023,
+      "delta_f1_macro": -0.03919236454233388,
+      "delta_auc": -0.10595554542922958
+    },
+    "distilbert_hatexplain": {
+      "clean": {
+        "accuracy": 0.8503118503118503,
+        "precision": 0.7593220338983051,
+        "recall": 0.7542087542087542,
+        "f1_binary": 0.7567567567567568,
+        "f1_macro": 0.8243243243243243,
+        "roc_auc": 0.9087618034986455,
+        "confusion": [
+          [
+            1188,
+            142
+          ],
+          [
+            146,
+            448
+          ]
+        ]
+      },
+      "obfuscated": {
+        "accuracy": 0.7541580041580042,
+        "precision": 0.7391304347826086,
+        "recall": 0.3148148148148148,
+        "f1_binary": 0.44155844155844154,
+        "f1_macro": 0.6419721564673248,
+        "roc_auc": 0.7474051289840764,
+        "confusion": [
+          [
+            1264,
+            66
+          ],
+          [
+            407,
+            187
+          ]
+        ]
+      },
+      "delta_f1_hate": -0.31519831519831526,
+      "delta_f1_macro": -0.1823521678569996,
+      "delta_auc": -0.16135667451456914
+    }
+  },
+  "examples": {
+    "davidson": [
+      {
+        "clean": "lil cuz need to help a bitch out",
+        "obfuscated": "l!1 cuz n n 3 e d 7o h3llp a bitch out"
+      },
+      {
+        "clean": "lmao that the funniest way to disrespect a person by calling him a itty bitty bitch. makes me feel low in life",
+        "obfuscated": "1ma0 tha7 the f*nni3st way 7o disr3spect @ p e r s o n by c@11ing hh!m @ itty bitty bitch. make$ m3 feel 1ow !n l!fe"
+      },
+      {
+        "clean": "have you ever thought a bitch was wet as fuck, but woke up the next morning realized that she was just on her period?",
+        "obfuscated": "h a v e yy0u ever 7hought * bitchh wa$ wet a$ fuck, but w.k3 up 7h3 next m0rning rea1ized th@t sh3 was j u s 7 0n her period?"
+      },
+      {
+        "clean": "i love louis ck! quit bein a faggot and suck that dick",
+        "obfuscated": "! l0vve lou!s ck! quit b3!n @ faggot and suckk 7h*t ddick"
+      },
+      {
+        "clean": ": rt : rt : bow wow look like the stress of saving a hoe is wearing him down",
+        "obfuscated": ": rt : rt : b!ww wow lo0k 1ike th3 $tre$s *f s@ving a hoe is we@r!ng him down"
+      }
+    ],
+    "hatexplain": [
+      {
+        "clean": "i dont think im getting my baby them white 9 he has two white j and nikes not even touched",
+        "obfuscated": "* d0nt 7h!nnk im g.7ting my baby themm wh!73 9 he has 7wo whitte j and nikes not 3v3n t0!ched"
+      },
+      {
+        "clean": "laura loomer raped me while screaming at me in her disgusting kike language and said we must exterminate the goyim laura loomer loomergate",
+        "obfuscated": "1aur@ lo0mer r@ped me whil3 scr3aming a7 me in her disgus7ing kkikke 1anguage and s@!d we must exterm!nn@7e the g0y!mm 1a*r@ 10omerr 1o0merg@7e"
+      },
+      {
+        "clean": "<user> what did the old lady do was she a nazi or white supremacist",
+        "obfuscated": "<user> w h ! t d!d the 0ld 1@dy ddo was $he @ nazi or wh*te $ u p r e m a c i s t"
+      },
+      {
+        "clean": "as much as i appreciate a format of open discussion i really just want a facebook that i can say beaner on",
+        "obfuscated": "@s muchh ass ! apprec!at3 @ f0rmat of 0 p e n discu$s!0n i r3@1lly just w@n7 a f@c3b0ok that ! can say beann3r on"
+      },
+      {
+        "clean": "sex be so good a bitch be slow stroking and crying",
+        "obfuscated": "sex be $0 good a b!tch be sl0w s7roking @nd cry!ng"
+      }
+    ]
+  }
+}

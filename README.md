@@ -224,7 +224,7 @@ Headline design decisions:
 - [ ] 3-seed mean ± std for all six (model, dataset) cells
 - [ ] 3-way classification appendix (hate / offensive / neither)
 - [x] Target-group breakdown on HateXplain (race, religion, gender, …) — `scripts/target_group_analysis.py`, results in [`results/target_group_analysis.md`](results/target_group_analysis.md)
-- [ ] Adversarial obfuscation evaluation
+- [x] Adversarial obfuscation evaluation — `scripts/adversarial_eval.py`, results in [`results/adversarial_eval.md`](results/adversarial_eval.md)
 - [x] Inference-cost table (latency, RAM, model size) — `scripts/inference_cost.py`, results in [`results/inference_cost.md`](results/inference_cost.md)
 - [ ] Paper draft v1.0 → arXiv submission
 - [ ] Blog writeup on [skakarh.com](https://www.skakarh.com/blog/)

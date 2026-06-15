@@ -42,13 +42,18 @@ decades of progress in text classification: (i) a TF-IDF + logistic regression
 baseline, (ii) Paragraph2Vec (Doc2Vec) comment embeddings followed by a linear
 classifier, replicating \citet{djuric2015hate}, and (iii) fine-tuned
 DistilBERT. We evaluate on two public datasets, \citet{davidson2017automated}
-and HateXplain \citep{mathew2021hatexplain}, and report a cross-dataset
-generalization study and a threshold-tuning ablation. Our results confirm that
-distributed representations address the high-dimensionality and sparsity
-issues of bag-of-words approaches, while contextual transformer models yield
-further consistent gains in F$_1$ on the hate class --- but only after the
-decision threshold is calibrated on a validation set, an often-overlooked
-step in class-imbalanced settings. Code and configurations are released at
+and HateXplain \citep{mathew2021hatexplain}, with a cross-dataset
+generalisation study, a threshold-tuning ablation, a target-group bias audit,
+an inference-cost benchmark, and a zero-shot adversarial-obfuscation probe.
+Our main findings are: (i) DistilBERT is best in-domain on every cell but
+only after the decision threshold is calibrated on validation, a step
+routinely omitted by hate-speech leaderboards; (ii) the best model's recall
+on the hate class varies by almost a factor of two across protected
+attributes, with race-targeted hate detected at recall $0.84$ but
+gender-targeted hate at $0.47$; and (iii) subword tokenisation does not
+confer adversarial robustness --- all three methods lose $11$ to $16$ AUC
+points under realistic character-level obfuscation, with DistilBERT in fact
+the most affected on F$_1$-hate. Code and configurations are released at
 \url{https://github.com/ShahnawazKakarh/hate-speech-detection}.
 \end{abstract}
 
@@ -292,6 +297,45 @@ still, the qualitative ordering is robust across thresholds and
 majority-vote tie-breaking. This is a reminder that aggregate F$_1$ on a
 class-imbalanced corpus can hide systematic failure modes that any
 deployment decision must take seriously.
+
+\subsection{Adversarial obfuscation}
+\label{sec:adversarial}
+
+Real-world hate-speech authors routinely obfuscate to evade keyword-based
+moderation: leet substitutions (\texttt{f*ck}, \texttt{n!gg3r}),
+character repetition (\texttt{kiiiill}), and token-internal spacing
+(\texttt{k i l l}) are common. We apply a deterministic (seed-42)
+perturbation that combines all three rules at fixed per-character
+probabilities to every token in the test split, then re-score every
+trained model on the perturbed text. No retraining or fine-tuning is
+performed --- this is a zero-shot robustness probe.
+
+\input{tables/adversarial.tex}
+
+The result contradicts a common assumption that subword tokenisation
+confers adversarial robustness. \emph{All three methods} degrade
+substantially: on HateXplain, where each model was strongest, the
+F$_1$-hate drops are $-0.25$ (TF-IDF), $-0.10$ (Doc2Vec), and $-0.32$
+(DistilBERT). DistilBERT loses the most in absolute terms only because it
+started highest --- on AUC, a measure invariant to threshold and prior,
+all three lose between $11$ and $16$ points, a remarkably narrow band.
+
+Mechanically, this is unsurprising. WordPiece tokenises
+\texttt{n!gg3r} as something like
+\texttt{[n, \#\#!, \#\#gg, \#\#3r]}, whose subword IDs do not overlap
+with those of \texttt{nigger} (\texttt{[nigger]}). The substituted
+punctuation characters were specifically learned during pretraining as
+delimiters, not as letter substitutes, so the model receives a token
+stream that looks structurally unlike anything it saw during
+fine-tuning. Doc2Vec's apparent robustness is illusory: its F$_1$-hate
+started at $0.17$ on Davidson and fell to $0.14$, a small absolute
+move from a model that was barely functional to begin with.
+
+The practical implication is that moderation systems facing motivated
+adversaries will need adversarial training, character-level inputs, or
+dedicated normalisation steps --- subword pretraining alone is not enough.
+This is, in our view, a more useful finding than a comfortable
+``transformers solve obfuscation'' headline would have been.
 
 \section{Discussion}
 

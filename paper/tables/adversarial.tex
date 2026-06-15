@@ -1,0 +1,12 @@
+\begin{tabular}{llcccccc}
+\toprule
+Model & Dataset & F1\textsubscript{hate} clean & F1\textsubscript{hate} obf. & $\Delta$ F1\textsubscript{hate} & AUC clean & AUC obf. & $\Delta$ AUC \\
+\midrule
+TF-IDF + LR & davidson & 0.4030 & 0.2411 & -0.1619 & 0.8566 & 0.7435 & -0.1131 \\
+TF-IDF + LR & hatexplain & 0.7311 & 0.4821 & -0.2491 & 0.8917 & 0.7503 & -0.1414 \\
+Doc2Vec + LR & davidson & 0.1683 & 0.1436 & -0.0247 & 0.7219 & 0.6080 & -0.1140 \\
+Doc2Vec + LR & hatexplain & 0.6122 & 0.5100 & -0.1022 & 0.7956 & 0.6896 & -0.1060 \\
+DistilBERT & davidson & 0.3682 & 0.1149 & -0.2533 & 0.8966 & 0.7733 & -0.1233 \\
+DistilBERT & hatexplain & 0.7568 & 0.4416 & -0.3152 & 0.9088 & 0.7474 & -0.1614 \\
+\bottomrule
+\end{tabular}

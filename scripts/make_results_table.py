@@ -8,14 +8,11 @@ Reads ``artifacts/<run_name>/metrics.json`` and emits:
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
+from hsd.utils import ARTIFACTS_DIR
+
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "src"))
-
-from hsd.utils import ARTIFACTS_DIR  # noqa: E402
-
 PAPER_TABLES = REPO / "paper" / "tables"
 
 MODELS = ["tfidf", "doc2vec", "distilbert"]

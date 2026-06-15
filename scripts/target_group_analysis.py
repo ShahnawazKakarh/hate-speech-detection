@@ -24,17 +24,14 @@ Usage:
 from __future__ import annotations
 
 import json
-import sys
 from collections import Counter
 from pathlib import Path
 
 import numpy as np
+from hsd.utils import ARTIFACTS_DIR, RAW_DIR, ensure_dir, get_logger
 from sklearn.metrics import f1_score, recall_score
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "src"))
-
-from hsd.utils import ARTIFACTS_DIR, RAW_DIR, ensure_dir, get_logger  # noqa: E402
 
 log = get_logger(__name__)
 

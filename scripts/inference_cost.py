@@ -24,18 +24,15 @@ import gc
 import json
 import os
 import statistics
-import sys
 import time
 from pathlib import Path
 
 import click
 import psutil
+from hsd.data.loaders import load_dataset
+from hsd.utils import ARTIFACTS_DIR, ensure_dir, get_logger
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "src"))
-
-from hsd.data.loaders import load_dataset  # noqa: E402
-from hsd.utils import ARTIFACTS_DIR, ensure_dir, get_logger  # noqa: E402
 
 log = get_logger(__name__)
 
