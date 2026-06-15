@@ -223,7 +223,7 @@ Headline design decisions:
 - [x] Threshold-tuning ablation (validation-set selected operating point) — `scripts/threshold_sweep.py`, results in [`results/threshold_tuning.md`](results/threshold_tuning.md)
 - [ ] 3-seed mean ± std for all six (model, dataset) cells
 - [ ] 3-way classification appendix (hate / offensive / neither)
-- [ ] Target-group breakdown on HateXplain (race, religion, gender, …)
+- [x] Target-group breakdown on HateXplain (race, religion, gender, …) — `scripts/target_group_analysis.py`, results in [`results/target_group_analysis.md`](results/target_group_analysis.md)
 - [ ] Adversarial obfuscation evaluation
 - [x] Inference-cost table (latency, RAM, model size) — `scripts/inference_cost.py`, results in [`results/inference_cost.md`](results/inference_cost.md)
 - [ ] Paper draft v1.0 → arXiv submission

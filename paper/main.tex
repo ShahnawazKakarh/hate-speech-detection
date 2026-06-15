@@ -87,6 +87,9 @@ protocols. This paper contributes such a benchmark.
   \item A threshold-tuning ablation showing that, on heavily imbalanced
         corpora, the choice of decision threshold can change the headline
         ranking between methods.
+  \item An inference-cost benchmark (size, latency, throughput) and a
+        target-group bias audit showing that the best model's recall
+        varies by almost a factor of two across protected attributes.
   \item Open-source release of code, configurations, and prepared dataset
         splits to support reproducibility.
 \end{enumerate}
@@ -263,6 +266,32 @@ For large-scale moderation queues where latency budgets are tight, this
 argues for a two-stage architecture: a TF-IDF-like fast filter handles the
 bulk of obviously-clean traffic, and a transformer reviews the small
 flagged residual.
+
+\subsection{Target-group analysis}
+\label{sec:targets}
+
+The HateXplain corpus tags each hateful post with the target group(s) it
+attacks. We map the fine-grained tags into six categories --- Race,
+Religion, Gender, Sexual Orientation, Other, and None --- by majority vote
+across the three annotators, and break down the test-set predictions of
+the DistilBERT-HateXplain model by group at the default $0.5$ threshold.
+
+\input{tables/target_groups.tex}
+
+The gap between groups is large and consistent with what one would expect
+from the training distribution. Race-targeted hate, which is the most
+frequent category in HateXplain ($\approx 286$ positives in the test
+split), is detected at recall $0.84$. Religion-targeted hate, the second
+most frequent ($\approx 208$ positives), follows at recall $0.76$. The
+two lowest-recall categories with non-trivial support are
+Sexual Orientation ($0.54$, $54$ positives) and Gender ($0.47$, $17$
+positives). The model learns to recognise what is plentiful in training,
+and under-detects hate aimed at less-represented targets. The Gender row
+in particular has small denominators and should be read with caution;
+still, the qualitative ordering is robust across thresholds and
+majority-vote tie-breaking. This is a reminder that aggregate F$_1$ on a
+class-imbalanced corpus can hide systematic failure modes that any
+deployment decision must take seriously.
 
 \section{Discussion}
 
