@@ -225,7 +225,7 @@ Headline design decisions:
 - [ ] 3-way classification appendix (hate / offensive / neither)
 - [ ] Target-group breakdown on HateXplain (race, religion, gender, …)
 - [ ] Adversarial obfuscation evaluation
-- [ ] Inference-cost table (latency, RAM, model size)
+- [x] Inference-cost table (latency, RAM, model size) — `scripts/inference_cost.py`, results in [`results/inference_cost.md`](results/inference_cost.md)
 - [ ] Paper draft v1.0 → arXiv submission
 - [ ] Blog writeup on [skakarh.com](https://www.skakarh.com/blog/)
 

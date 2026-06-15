@@ -1,0 +1,12 @@
+\begin{tabular}{llccc}
+\toprule
+Model & Dataset & Size (MB) & Latency p50 (ms) & Throughput @ bs=32 (s$^{-1}$) \\
+\midrule
+TF-IDF + LR & davidson & 1.4 & 0.35 & 39183.0 \\
+TF-IDF + LR & hatexplain & 2.0 & 0.34 & 33212.7 \\
+Doc2Vec + LR & davidson & 30.8 & 0.50 & 2124.5 \\
+Doc2Vec + LR & hatexplain & 30.4 & 0.71 & 1412.8 \\
+DistilBERT & davidson & 256.1 & 19.93 & 303.9 \\
+DistilBERT & hatexplain & 256.1 & 17.78 & 225.7 \\
+\bottomrule
+\end{tabular}

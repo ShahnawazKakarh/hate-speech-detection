@@ -1,0 +1,68 @@
+{
+  "tfidf_davidson": {
+    "size_mb": 1.3788299560546875,
+    "rss_load_delta_mb": 81.125,
+    "latency_ms_median": 0.3497705183690414,
+    "latency_ms_p05": 0.32080207456601784,
+    "latency_ms_p95": 0.4756166352308355,
+    "throughput_samples_per_sec": 39183.01810307566,
+    "batch_size": 32,
+    "n_iters": 200,
+    "n_warmup": 5
+  },
+  "doc2vec_davidson": {
+    "size_mb": 30.82411289215088,
+    "rss_load_delta_mb": 40.078125,
+    "latency_ms_median": 0.49929149099625647,
+    "latency_ms_p05": 0.3193252836354077,
+    "latency_ms_p95": 0.9041604018420912,
+    "throughput_samples_per_sec": 2124.4578204868326,
+    "batch_size": 32,
+    "n_iters": 200,
+    "n_warmup": 5
+  },
+  "distilbert_davidson": {
+    "size_mb": 256.10453510284424,
+    "rss_load_delta_mb": 173.53125,
+    "latency_ms_median": 19.92972902371548,
+    "latency_ms_p05": 16.235508961835876,
+    "latency_ms_p95": 32.1111419601948,
+    "throughput_samples_per_sec": 303.87181309918185,
+    "batch_size": 32,
+    "n_iters": 200,
+    "n_warmup": 5
+  },
+  "tfidf_hatexplain": {
+    "size_mb": 1.9817962646484375,
+    "rss_load_delta_mb": 25.953125,
+    "latency_ms_median": 0.33591699320822954,
+    "latency_ms_p05": 0.3142339483019896,
+    "latency_ms_p95": 0.43248751608189195,
+    "throughput_samples_per_sec": 33212.72397190979,
+    "batch_size": 32,
+    "n_iters": 200,
+    "n_warmup": 5
+  },
+  "doc2vec_hatexplain": {
+    "size_mb": 30.363080978393555,
+    "rss_load_delta_mb": 21.5,
+    "latency_ms_median": 0.7087705016601831,
+    "latency_ms_p05": 0.31784199964022264,
+    "latency_ms_p95": 1.4039142552064732,
+    "throughput_samples_per_sec": 1412.7550263045298,
+    "batch_size": 32,
+    "n_iters": 200,
+    "n_warmup": 5
+  },
+  "distilbert_hatexplain": {
+    "size_mb": 256.10453510284424,
+    "rss_load_delta_mb": 19.25,
+    "latency_ms_median": 17.77574999141507,
+    "latency_ms_p05": 14.68255000654608,
+    "latency_ms_p95": 21.811856240674388,
+    "throughput_samples_per_sec": 225.65935979423872,
+    "batch_size": 32,
+    "n_iters": 200,
+    "n_warmup": 5
+  }
+}

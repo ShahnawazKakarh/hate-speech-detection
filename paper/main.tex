@@ -242,6 +242,28 @@ corpus. The qualitative ranking of methods can therefore depend on this
 single hyper-parameter, which is a finding in its own right and a caution
 to readers of hate-speech leaderboards.
 
+\subsection{Inference cost}
+\label{sec:cost}
+
+A detection method's value at deployment depends as much on its inference
+cost as on its accuracy. We report on-disk size, single-sample latency
+(median, 5/95 percentile), and throughput at batch size $32$, all measured
+single-threaded on the same laptop (Apple Silicon, CPU/MPS, no CUDA).
+Resident-memory deltas were measured but excluded from the headline table:
+back-to-back loads of small models produced noisy and occasionally
+negative deltas due to garbage-collector activity and OS page reuse. The
+raw values are retained in the released JSON.
+
+\input{tables/inference_cost.tex}
+
+The accuracy-cost trade-off is stark. TF-IDF + LR is roughly two orders of
+magnitude cheaper than DistilBERT on every cost axis, while losing only
+a few F$_1$ points after threshold tuning (Section~\ref{sec:threshold}).
+For large-scale moderation queues where latency budgets are tight, this
+argues for a two-stage architecture: a TF-IDF-like fast filter handles the
+bulk of obviously-clean traffic, and a transformer reviews the small
+flagged residual.
+
 \section{Discussion}
 
 \paragraph{What the embeddings buy you.}
