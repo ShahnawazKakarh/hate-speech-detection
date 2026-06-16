@@ -399,6 +399,25 @@ the hardest one to learn, and accounts for a large fraction of the
 remaining error budget on both corpora. The qualitative model ranking is
 preserved: DistilBERT $>$ TF-IDF $>$ Doc2Vec.
 
+\section{Multi-seed variance}
+\label{app:seeds}
+
+The headline tables in Section~\ref{sec:results} report single-seed
+(seed 42) runs, the standard practice in much of the hate-speech detection
+literature. To quantify the run-to-run variance, we retrain every binary
+configuration at two additional seeds, $7$ and $1337$, chosen before any
+results were inspected. Mean $\pm$ standard deviation across the three
+seeds are reported below.
+
+\input{tables/multi_seed.tex}
+
+The model ordering established in the single-seed table is robust:
+DistilBERT $\succ$ TF-IDF $\succ$ Doc2Vec on both corpora across all
+three seeds. Standard deviations are small relative to the
+between-model gaps in the headline table, with the largest variance
+appearing in the F$_1$-hate column on Davidson --- consistent with the
+class-imbalance discussion in Section~\ref{sec:threshold}.
+
 \bibliographystyle{plainnat}
 \bibliography{references}
 

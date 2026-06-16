@@ -221,7 +221,7 @@ Headline design decisions:
 - [x] Live results in [`results/results.md`](results/results.md)
 - [x] arXiv-style LaTeX paper skeleton with abstract, intro, related work
 - [x] Threshold-tuning ablation (validation-set selected operating point) — `scripts/threshold_sweep.py`, results in [`results/threshold_tuning.md`](results/threshold_tuning.md)
-- [ ] 3-seed mean ± std for all six (model, dataset) cells
+- [x] 3-seed mean ± std for all six (model, dataset) cells — `scripts/run_multi_seed.sh`, results in [`results/multi_seed.md`](results/multi_seed.md)
 - [x] 3-way classification appendix (hate / offensive / neither) — `configs/*_3way.yaml`, results in [`results/results_3way.md`](results/results_3way.md)
 - [x] Target-group breakdown on HateXplain (race, religion, gender, …) — `scripts/target_group_analysis.py`, results in [`results/target_group_analysis.md`](results/target_group_analysis.md)
 - [x] Adversarial obfuscation evaluation — `scripts/adversarial_eval.py`, results in [`results/adversarial_eval.md`](results/adversarial_eval.md)

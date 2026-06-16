@@ -57,3 +57,6 @@ paper/main.pdf
 # env
 .env
 .env.local
+
+# logs
+*.log

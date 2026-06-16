@@ -127,8 +127,21 @@ TRAINERS = {
 # --------------------------------------------------------------------------- #
 @click.command()
 @click.option("--config", "config_path", type=click.Path(exists=True), required=True)
-def main(config_path: str) -> None:
+@click.option(
+    "--seed-override",
+    type=int,
+    default=None,
+    help="Override the seed in the YAML and append _s<seed> to run_name.",
+)
+def main(config_path: str, seed_override: int | None) -> None:
     cfg = yaml.safe_load(Path(config_path).read_text())
+
+    if seed_override is not None:
+        cfg["seed"] = seed_override
+        if "model" in cfg and "seed" in cfg["model"]:
+            cfg["model"]["seed"] = seed_override
+        cfg["run_name"] = f"{cfg['run_name']}_s{seed_override}"
+
     set_seed(cfg.get("seed", 42))
     log.info("config: %s", cfg)
 
