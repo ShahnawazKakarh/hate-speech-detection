@@ -1,0 +1,43 @@
+name: Build paper PDF
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+    paths:
+      - "paper/**"
+      - ".github/workflows/paper.yml"
+  pull_request:
+    paths:
+      - "paper/**"
+  workflow_dispatch: # manual trigger button on the Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile main.tex (xu-cheng/latex-action)
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          working_directory: paper
+          latexmk_use_xelatex: false
+          extra_system_packages: ""
+          args: -pdf -bibtex -interaction=nonstopmode -halt-on-error -file-line-error
+
+      - name: Upload PDF as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-pdf
+          path: paper/main.pdf
+          if-no-files-found: error
+
+      - name: Attach PDF to release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: paper/main.pdf
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

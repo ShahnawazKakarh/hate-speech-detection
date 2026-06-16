@@ -2,15 +2,25 @@ cff-version: 1.2.0
 message: "If you use this software or the accompanying paper, please cite it as below."
 title: "Benchmarking Classical, Embedding-Based, and Transformer Approaches for Hate Speech Detection in Online Comments"
 version: 0.1.0
-date-released: 2026-06-15
+date-released: 2026-06-16
+doi: 10.5281/zenodo.20711658
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.20711658
+    description: Concept DOI (always resolves to the latest version)
+  - type: doi
+    value: 10.5281/zenodo.20711659
+    description: v0.1.0 release DOI
 authors:
   - family-names: Khan
-    given-names: Shahnawaz
+    given-names: Muhammad Shahnawaz
     email: shahnawaz.jrw@gmail.com
     orcid: "https://orcid.org/0009-0007-4055-6563"
+    affiliation: Independent Researcher
+    website: "https://www.skakarh.com"
 license: MIT
 repository-code: "https://github.com/ShahnawazKakarh/hate-speech-detection"
-url: "https://skakarh.com"
+url: "https://doi.org/10.5281/zenodo.20711658"
 keywords:
   - hate speech detection
   - text classification
@@ -19,11 +29,22 @@ keywords:
   - doc2vec
   - paragraph2vec
   - transformers
+  - benchmarking
+  - reproducibility
+  - bias audit
+  - adversarial robustness
 preferred-citation:
-  type: article
+  type: software
   title: "Benchmarking Classical, Embedding-Based, and Transformer Approaches for Hate Speech Detection in Online Comments"
   authors:
     - family-names: Khan
-      given-names: Shahnawaz
+      given-names: Muhammad Shahnawaz
+      orcid: "https://orcid.org/0009-0007-4055-6563"
+      affiliation: Independent Researcher
+  version: 0.1.0
   year: 2026
-  url: "https://github.com/ShahnawazKakarh/hate-speech-detection"
+  month: 6
+  doi: 10.5281/zenodo.20711658
+  url: "https://doi.org/10.5281/zenodo.20711658"
+  publisher:
+    name: Zenodo

@@ -8,7 +8,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C.svg?logo=pytorch)](https://pytorch.org/)
 [![🤗 Transformers](https://img.shields.io/badge/🤗_Transformers-4.4x-yellow.svg)](https://github.com/huggingface/transformers)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![DOI](https://zenodo.org/badge/DOI/PENDING.svg)](https://doi.org/PENDING)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20711658.svg)](https://doi.org/10.5281/zenodo.20711658)
 [![Target venue: arXiv / ACL](https://img.shields.io/badge/target%20venue-arXiv%20%2F%20ACL-b31b1b.svg)](https://arxiv.org/)
 
 ---
@@ -227,26 +227,47 @@ Headline design decisions:
 - [x] Target-group breakdown on HateXplain (race, religion, gender, …) — `scripts/target_group_analysis.py`, results in [`results/target_group_analysis.md`](results/target_group_analysis.md)
 - [x] Adversarial obfuscation evaluation — `scripts/adversarial_eval.py`, results in [`results/adversarial_eval.md`](results/adversarial_eval.md)
 - [x] Inference-cost table (latency, RAM, model size) — `scripts/inference_cost.py`, results in [`results/inference_cost.md`](results/inference_cost.md)
-- [ ] Paper draft v1.0 → arXiv submission
+- [x] Paper draft v1.0 — see `paper/main.tex` (auto-built to `main.pdf` by [.github/workflows/paper.yml](.github/workflows/paper.yml))
+- [x] **Zenodo archive with DOI** — [10.5281/zenodo.20711658](https://doi.org/10.5281/zenodo.20711658)
+- [ ] arXiv submission of v0.1 preprint
 - [ ] Blog writeup on [skakarh.com](https://www.skakarh.com/blog/)
 
 ---
 
 ## 📦 How to cite
 
-If you use this work, please cite via [`CITATION.cff`](CITATION.cff) (GitHub renders the "Cite this repository" button), or with the BibTeX below:
+If you use this work, please cite via the concept DOI (which always resolves to the latest version):
 
 ```bibtex
-@misc{khan2026hsd,
-  author = {Khan, Shahnawaz},
-  title  = {Benchmarking Classical, Embedding-Based, and Transformer Approaches
-            for Hate Speech Detection in Online Comments},
-  year   = {2026},
-  url    = {https://github.com/ShahnawazKakarh/hate-speech-detection}
+@software{khan2026hsd,
+  author       = {Khan, Muhammad Shahnawaz},
+  title        = {{Benchmarking Classical, Embedding-Based, and Transformer
+                   Approaches for Hate Speech Detection in Online Comments}},
+  year         = {2026},
+  month        = jun,
+  publisher    = {Zenodo},
+  version      = {v0.1.0},
+  doi          = {10.5281/zenodo.20711658},
+  url          = {https://doi.org/10.5281/zenodo.20711658},
+  orcid        = {0009-0007-4055-6563},
+  note         = {Code: \url{https://github.com/ShahnawazKakarh/hate-speech-detection}}
 }
 ```
 
----
+GitHub also renders a "Cite this repository" button on the right sidebar that reads from [`CITATION.cff`](CITATION.cff).
+
+## 🚀 Release status & what's next
+
+**v0.1.0 — shipped 2026-06-16.** All six benchmarks, cross-dataset evaluation, threshold tuning, inference cost, target-group bias audit, adversarial obfuscation, 3-way classification, and 3-seed mean ± std. Permanently archived on Zenodo with [DOI 10.5281/zenodo.20711658](https://doi.org/10.5281/zenodo.20711658) and on Software Heritage. See [`CHANGELOG.md`](CHANGELOG.md).
+
+**v0.2 roadmap — candidate directions, ranked by novelty-per-effort:**
+
+1. **LLM zero-shot + few-shot baselines (Claude, GPT-4, Llama-3)** — the 2026 question every reviewer asks. Does a 70B-parameter instruction-tuned LLM beat fine-tuned DistilBERT on the same Davidson / HateXplain test splits with the same metrics? No new data, only inference. *Effort: ~2 weeks.*
+2. **Two-stage cascade architecture** — follows directly from the inference-cost finding: a TF-IDF prefilter handles the obvious-clean traffic, DistilBERT reviews only the flagged residual. Measure throughput vs F1 at the *system* level rather than the model level. *Effort: ~1 week.*
+3. **Adversarial-training robustness study** — fine-tune DistilBERT with a fraction of obfuscated examples per batch and see whether the 11–16 AUC gap from §5.6 closes. Counter-experiment to the negative finding currently in the paper. *Effort: ~1 week.*
+4. **Multilingual extension (English → Urdu / Hindi / Punjabi)** — same protocol, transfer learning from English-pretrained backbones. Pairs naturally with the [SER multilingual work](https://github.com/ShahnawazKakarh/speech-emotion-recognition-transfer-learning). *Effort: ~2 months; requires labelling ≈500 Urdu posts.*
+5. **Bias-mitigation by per-group reweighting** — use the target-group analysis from §5.5 to compute per-group training weights; report whether the Race/Gender recall gap closes. *Effort: ~1 week.*
+6. **arXiv submission of v0.1** — the current paper is a workshop-quality reproducibility benchmark and is a fine arXiv preprint as-is; the real publication targets land after v0.2 ships one of the above.
 
 ## 📚 Citations & references
 
