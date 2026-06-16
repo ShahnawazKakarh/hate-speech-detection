@@ -8,6 +8,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C.svg?logo=pytorch)](https://pytorch.org/)
 [![🤗 Transformers](https://img.shields.io/badge/🤗_Transformers-4.4x-yellow.svg)](https://github.com/huggingface/transformers)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![DOI](https://zenodo.org/badge/DOI/PENDING.svg)](https://doi.org/PENDING)
 [![Target venue: arXiv / ACL](https://img.shields.io/badge/target%20venue-arXiv%20%2F%20ACL-b31b1b.svg)](https://arxiv.org/)
 
 ---
