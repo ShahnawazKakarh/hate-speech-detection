@@ -44,19 +44,24 @@ classifier, replicating \citet{djuric2015hate}, and (iii) fine-tuned
 DistilBERT. We evaluate on two public datasets, \citet{davidson2017automated}
 and HateXplain \citep{mathew2021hatexplain}, with a cross-dataset
 generalisation study, a threshold-tuning ablation, a target-group bias audit,
-an inference-cost benchmark, and a zero-shot adversarial-obfuscation probe.
-Our main findings are: (i) DistilBERT is best in-domain on every cell but
-only after the decision threshold is calibrated on validation, a step
+an inference-cost benchmark, a zero-shot adversarial-obfuscation probe, a
+two-stage cascade evaluation, and a zero-shot / four-shot large-language-model
+comparison. Our findings are: (i) DistilBERT is best in-domain on every cell
+but only after the decision threshold is calibrated on validation, a step
 routinely omitted by hate-speech leaderboards; (ii) the best model's recall
 on the hate class varies by almost a factor of two across protected
 attributes, with race-targeted hate detected at recall $0.84$ but
-gender-targeted hate at $0.47$; and (iii) subword tokenisation does not
+gender-targeted hate at $0.47$; (iii) subword tokenisation does not
 confer adversarial robustness --- all three methods lose $11$ to $16$ AUC
 points under realistic character-level obfuscation, with DistilBERT in fact
-the most affected on F$_1$-hate. Code and configurations are released at
-\url{https://github.com/ShahnawazKakarh/hate-speech-detection}
-and archived at
-\href{https://doi.org/10.5281/zenodo.20711658}{doi.org/10.5281/zenodo.20711658}.
+the most affected on F$_1$-hate; (iv) a two-stage TF-IDF-prefilter + DistilBERT-
+verifier cascade matches or beats DistilBERT-alone F$_1$-hate at up to
+$9\times$ the system throughput; and (v) instruction-tuned Gemini 2.5 Flash
+is competitive but does not beat fine-tuned DistilBERT on either corpus, with
+its probability scores in particular less well-ranked on the imbalanced
+Davidson corpus (AUC $0.797$ vs $0.897$). Code, configurations, and a
+permanently-archived Zenodo release (DOI: 10.5281/zenodo.20711658) accompany
+the paper.
 \end{abstract}
 
 \section{Introduction}
@@ -97,8 +102,16 @@ protocols. This paper contributes such a benchmark.
   \item An inference-cost benchmark (size, latency, throughput) and a
         target-group bias audit showing that the best model's recall
         varies by almost a factor of two across protected attributes.
-  \item Open-source release of code, configurations, and prepared dataset
-        splits to support reproducibility.
+  \item A two-stage TF-IDF + DistilBERT cascade that recovers most of the
+        transformer's accuracy at close to the classical baseline's
+        throughput.
+  \item A zero-shot / four-shot LLM comparison (Gemini 2.5 Flash via
+        OpenRouter) directly answering the 2026 reviewer question of whether
+        instruction-tuned language models make fine-tuning obsolete on this
+        task.
+  \item Open-source release of code, configurations, prepared dataset
+        splits, and a Zenodo-archived versioned release to support
+        reproducibility.
 \end{enumerate}
 
 \section{Background and Related Work}

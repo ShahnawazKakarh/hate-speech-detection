@@ -258,16 +258,17 @@ GitHub also renders a "Cite this repository" button on the right sidebar that re
 
 ## 🚀 Release status & what's next
 
-**v0.1.0 — shipped 2026-06-16.** All six benchmarks, cross-dataset evaluation, threshold tuning, inference cost, target-group bias audit, adversarial obfuscation, 3-way classification, and 3-seed mean ± std. Permanently archived on Zenodo with [DOI 10.5281/zenodo.20711658](https://doi.org/10.5281/zenodo.20711658) and on Software Heritage. See [`CHANGELOG.md`](CHANGELOG.md).
+**v0.2.0 — shipped 2026-06-16.** Adds a two-stage cascade architecture (§5.7) and LLM zero-shot / few-shot baselines via OpenRouter (Appendix C). Auto-archived on Zenodo; concept DOI [10.5281/zenodo.20711658](https://doi.org/10.5281/zenodo.20711658) now resolves to v0.2.0.
 
-**v0.2 roadmap — candidate directions, ranked by novelty-per-effort:**
+**v0.1.0 — shipped 2026-06-16.** Six benchmark cells, cross-dataset generalisation, threshold tuning, inference cost, target-group bias audit, adversarial obfuscation, 3-way classification, 3-seed mean ± std. See [`CHANGELOG.md`](CHANGELOG.md).
 
-1. **LLM zero-shot + few-shot baselines (Claude, GPT-4, Llama-3)** — the 2026 question every reviewer asks. Does a 70B-parameter instruction-tuned LLM beat fine-tuned DistilBERT on the same Davidson / HateXplain test splits with the same metrics? No new data, only inference. *Effort: ~2 weeks.*
-2. **Two-stage cascade architecture** — ✅ **shipped on master**, wrapper at `src/hsd/cascade.py`, sweep at `scripts/cascade_sweep.py`, results in [`results/cascade_sweep.md`](results/cascade_sweep.md), paper §5.7 and figure `paper/figures/cascade_frontier.png`.
-3. **Adversarial-training robustness study** — fine-tune DistilBERT with a fraction of obfuscated examples per batch and see whether the 11–16 AUC gap from §5.6 closes. Counter-experiment to the negative finding currently in the paper. *Effort: ~1 week.*
-4. **Multilingual extension (English → Urdu / Hindi / Punjabi)** — same protocol, transfer learning from English-pretrained backbones. Pairs naturally with the [SER multilingual work](https://github.com/ShahnawazKakarh/speech-emotion-recognition-transfer-learning). *Effort: ~2 months; requires labelling ≈500 Urdu posts.*
-5. **Bias-mitigation by per-group reweighting** — use the target-group analysis from §5.5 to compute per-group training weights; report whether the Race/Gender recall gap closes. *Effort: ~1 week.*
-6. **arXiv submission of v0.1** — the current paper is a workshop-quality reproducibility benchmark and is a fine arXiv preprint as-is; the real publication targets land after v0.2 ships one of the above.
+**v0.3 roadmap — candidate directions, ranked by novelty-per-effort:**
+
+1. **New corpus: Roman Urdu hate speech** — Pakistan's dominant Latin-script Urdu writing on Facebook/Twitter/YouTube, with code-mixing (English + Urdu in the same post). No public benchmark exists for a 200M-speaker language. Being pursued in a separate repo, [`pakhate-speech-detection`](https://github.com/ShahnawazKakarh/pakhate-speech-detection).
+2. **Adversarial-training counter-experiment.** Extend §5.6: fine-tune DistilBERT with a fraction of obfuscated examples per batch, measure whether the 11–16 AUC gap closes. Also compare against character-level pretraining (CANINE, ByT5). *Effort: ~1–2 weeks.*
+3. **Three-tier cascade with LLM residual.** Extend §5.7: TF-IDF prefilter → DistilBERT verifier → LLM only on residual disagreements. Measure whether LLM as a third tier adds meaningful F1 at bounded incremental cost. *Effort: ~1 week.*
+4. **Bias mitigation by per-group reweighting.** Direct counter-experiment to §5.5. *Effort: ~1 week.*
+5. **arXiv preprint submission.** v0.2 code + paper is complete and ready for arXiv upload; awaiting a compiled PDF via the WeasyPrint pipeline used by the SER and retinal projects.
 
 ## 📚 Citations & references
 
