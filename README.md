@@ -263,7 +263,7 @@ GitHub also renders a "Cite this repository" button on the right sidebar that re
 **v0.2 roadmap — candidate directions, ranked by novelty-per-effort:**
 
 1. **LLM zero-shot + few-shot baselines (Claude, GPT-4, Llama-3)** — the 2026 question every reviewer asks. Does a 70B-parameter instruction-tuned LLM beat fine-tuned DistilBERT on the same Davidson / HateXplain test splits with the same metrics? No new data, only inference. *Effort: ~2 weeks.*
-2. **Two-stage cascade architecture** — follows directly from the inference-cost finding: a TF-IDF prefilter handles the obvious-clean traffic, DistilBERT reviews only the flagged residual. Measure throughput vs F1 at the *system* level rather than the model level. *Effort: ~1 week.*
+2. **Two-stage cascade architecture** — ✅ **shipped on master**, wrapper at `src/hsd/cascade.py`, sweep at `scripts/cascade_sweep.py`, results in [`results/cascade_sweep.md`](results/cascade_sweep.md), paper §5.7 and figure `paper/figures/cascade_frontier.png`.
 3. **Adversarial-training robustness study** — fine-tune DistilBERT with a fraction of obfuscated examples per batch and see whether the 11–16 AUC gap from §5.6 closes. Counter-experiment to the negative finding currently in the paper. *Effort: ~1 week.*
 4. **Multilingual extension (English → Urdu / Hindi / Punjabi)** — same protocol, transfer learning from English-pretrained backbones. Pairs naturally with the [SER multilingual work](https://github.com/ShahnawazKakarh/speech-emotion-recognition-transfer-learning). *Effort: ~2 months; requires labelling ≈500 Urdu posts.*
 5. **Bias-mitigation by per-group reweighting** — use the target-group analysis from §5.5 to compute per-group training weights; report whether the Race/Gender recall gap closes. *Effort: ~1 week.*

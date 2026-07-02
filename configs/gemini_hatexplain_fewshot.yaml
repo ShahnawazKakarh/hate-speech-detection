@@ -1,0 +1,15 @@
+run_name: gemini_hatexplain_fewshot
+model_type: llm
+dataset: hatexplain
+seed: 42
+wandb: false
+model:
+  model_name: gemini-2.5-flash
+  regime: few_shot
+  k_shots: 4
+  seed: 42
+  temperature: 0.0
+  max_output_tokens: 64
+  request_timeout_s: 30.0
+  retry_attempts: 4
+  retry_backoff_s: 4.0

@@ -1,0 +1,224 @@
+[
+  {
+    "dataset": "davidson",
+    "sweep": [
+      {
+        "stage1_threshold": 0.05,
+        "stage2_rate": 0.9302137958854376,
+        "accuracy": 0.9390883420734167,
+        "f1_hate": 0.3682008368200837,
+        "f1_macro": 0.6681012660472532,
+        "roc_auc": 0.8880804555034006,
+        "latency_ms_per_sample": 18.888679404487597,
+        "throughput_samples_per_sec": 323.9678679695002
+      },
+      {
+        "stage1_threshold": 0.1,
+        "stage2_rate": 0.7345703912868092,
+        "accuracy": 0.9390883420734167,
+        "f1_hate": 0.3682008368200837,
+        "f1_macro": 0.6681012660472532,
+        "roc_auc": 0.8276220782642015,
+        "latency_ms_per_sample": 14.989559365559801,
+        "throughput_samples_per_sec": 409.35112584281234
+      },
+      {
+        "stage1_threshold": 0.15,
+        "stage2_rate": 0.5369100443727309,
+        "accuracy": 0.9390883420734167,
+        "f1_hate": 0.3682008368200837,
+        "f1_macro": 0.6681012660472532,
+        "roc_auc": 0.7850024547370439,
+        "latency_ms_per_sample": 11.050242212828623,
+        "throughput_samples_per_sec": 557.9056510794595
+      },
+      {
+        "stage1_threshold": 0.2,
+        "stage2_rate": 0.400161355385236,
+        "accuracy": 0.9390883420734167,
+        "f1_hate": 0.3682008368200837,
+        "f1_macro": 0.6681012660472532,
+        "roc_auc": 0.7550995665293612,
+        "latency_ms_per_sample": 8.324877896959505,
+        "throughput_samples_per_sec": 744.9362261481135
+      },
+      {
+        "stage1_threshold": 0.25,
+        "stage2_rate": 0.2920532472771279,
+        "accuracy": 0.9390883420734167,
+        "f1_hate": 0.3682008368200837,
+        "f1_macro": 0.6681012660472532,
+        "roc_auc": 0.7348360115911485,
+        "latency_ms_per_sample": 6.170312597098372,
+        "throughput_samples_per_sec": 1013.5532349622055
+      },
+      {
+        "stage1_threshold": 0.3,
+        "stage2_rate": 0.22751109318273496,
+        "accuracy": 0.9390883420734167,
+        "f1_hate": 0.3682008368200837,
+        "f1_macro": 0.6681012660472532,
+        "roc_auc": 0.716593124341412,
+        "latency_ms_per_sample": 4.884004955390232,
+        "throughput_samples_per_sec": 1291.6079895246123
+      },
+      {
+        "stage1_threshold": 0.35,
+        "stage2_rate": 0.17950786607503025,
+        "accuracy": 0.9394917305365067,
+        "f1_hate": 0.3697478991596639,
+        "f1_macro": 0.6689841190713574,
+        "roc_auc": 0.7343630256729572,
+        "latency_ms_per_sample": 3.9273136468698033,
+        "throughput_samples_per_sec": 1622.7002637990863
+      },
+      {
+        "stage1_threshold": 0.4,
+        "stage2_rate": 0.14844695441710368,
+        "accuracy": 0.9398951189995967,
+        "f1_hate": 0.37130801687763715,
+        "f1_macro": 0.6698734534716506,
+        "roc_auc": 0.7552073354727464,
+        "latency_ms_per_sample": 3.3082780942977617,
+        "throughput_samples_per_sec": 1945.3754051100957
+      },
+      {
+        "stage1_threshold": 0.45,
+        "stage2_rate": 0.11980637353771682,
+        "accuracy": 0.9415086728519564,
+        "f1_hate": 0.3776824034334764,
+        "f1_macro": 0.6734972863728229,
+        "roc_auc": 0.7648077521793275,
+        "latency_ms_per_sample": 2.7374790782897747,
+        "throughput_samples_per_sec": 2382.158079953873
+      },
+      {
+        "stage1_threshold": 0.5,
+        "stage2_rate": 0.10246066962484873,
+        "accuracy": 0.9415086728519564,
+        "f1_hate": 0.3776824034334764,
+        "f1_macro": 0.6734972863728229,
+        "roc_auc": 0.787750562793371,
+        "latency_ms_per_sample": 2.3917838995807124,
+        "throughput_samples_per_sec": 2757.06064177208
+      }
+    ],
+    "distilbert_alone": {
+      "f1_hate": 0.3682008368200837,
+      "f1_macro": 0.6681012660472532,
+      "roc_auc": 0.8965552854679567,
+      "throughput_samples_per_sec": 303.87181309918185
+    }
+  },
+  {
+    "dataset": "hatexplain",
+    "sweep": [
+      {
+        "stage1_threshold": 0.05,
+        "stage2_rate": 0.9875259875259875,
+        "accuracy": 0.8503118503118503,
+        "f1_hate": 0.7567567567567568,
+        "f1_macro": 0.8243243243243243,
+        "roc_auc": 0.9077149945570998,
+        "latency_ms_per_sample": 17.88993205749546,
+        "throughput_samples_per_sec": 226.94834646197157
+      },
+      {
+        "stage1_threshold": 0.1,
+        "stage2_rate": 0.9449064449064449,
+        "accuracy": 0.8503118503118503,
+        "f1_hate": 0.7567567567567568,
+        "f1_macro": 0.8243243243243243,
+        "roc_auc": 0.9029442292600187,
+        "latency_ms_per_sample": 17.13233772314201,
+        "throughput_samples_per_sec": 237.1116610527548
+      },
+      {
+        "stage1_threshold": 0.15,
+        "stage2_rate": 0.8731808731808732,
+        "accuracy": 0.8503118503118503,
+        "f1_hate": 0.7567567567567568,
+        "f1_macro": 0.8243243243243243,
+        "roc_auc": 0.8966848940533151,
+        "latency_ms_per_sample": 15.85736189215694,
+        "throughput_samples_per_sec": 256.43830653030636
+      },
+      {
+        "stage1_threshold": 0.2,
+        "stage2_rate": 0.7900207900207901,
+        "accuracy": 0.8508316008316008,
+        "f1_hate": 0.757396449704142,
+        "f1_macro": 0.8248520710059172,
+        "roc_auc": 0.8868699526594265,
+        "latency_ms_per_sample": 14.379129044638015,
+        "throughput_samples_per_sec": 283.20164150176817
+      },
+      {
+        "stage1_threshold": 0.25,
+        "stage2_rate": 0.6943866943866944,
+        "accuracy": 0.8529106029106029,
+        "f1_hate": 0.7591489361702127,
+        "f1_macro": 0.826637692926109,
+        "roc_auc": 0.8757056783372572,
+        "latency_ms_per_sample": 12.679161269991251,
+        "throughput_samples_per_sec": 321.8275178223128
+      },
+      {
+        "stage1_threshold": 0.3,
+        "stage2_rate": 0.606029106029106,
+        "accuracy": 0.853950103950104,
+        "f1_hate": 0.7596236099230111,
+        "f1_macro": 0.827366862818915,
+        "roc_auc": 0.8655844155844156,
+        "latency_ms_per_sample": 11.108538869502391,
+        "throughput_samples_per_sec": 368.2289771323324
+      },
+      {
+        "stage1_threshold": 0.35,
+        "stage2_rate": 0.5233887733887734,
+        "accuracy": 0.853950103950104,
+        "f1_hate": 0.7579672695951766,
+        "f1_macro": 0.826694836881697,
+        "roc_auc": 0.8572289309131415,
+        "latency_ms_per_sample": 9.639544977280462,
+        "throughput_samples_per_sec": 425.6253048747563
+      },
+      {
+        "stage1_threshold": 0.4,
+        "stage2_rate": 0.4553014553014553,
+        "accuracy": 0.853950103950104,
+        "f1_hate": 0.754585152838428,
+        "f1_macro": 0.8253132941402647,
+        "roc_auc": 0.852974608237766,
+        "latency_ms_per_sample": 8.429241833374343,
+        "throughput_samples_per_sec": 488.3388899447984
+      },
+      {
+        "stage1_threshold": 0.45,
+        "stage2_rate": 0.3877338877338877,
+        "accuracy": 0.8518711018711018,
+        "f1_hate": 0.7457627118644068,
+        "f1_macro": 0.8206261304096512,
+        "roc_auc": 0.8670932381458697,
+        "latency_ms_per_sample": 7.228177644765215,
+        "throughput_samples_per_sec": 571.9726239994098
+      },
+      {
+        "stage1_threshold": 0.5,
+        "stage2_rate": 0.3310810810810811,
+        "accuracy": 0.8497920997920998,
+        "f1_hate": 0.7346189164370982,
+        "f1_macro": 0.8149354096502273,
+        "roc_auc": 0.8724044960887065,
+        "latency_ms_per_sample": 6.221131517392949,
+        "throughput_samples_per_sec": 667.8773571827642
+      }
+    ],
+    "distilbert_alone": {
+      "f1_hate": 0.7567567567567568,
+      "f1_macro": 0.8243243243243243,
+      "roc_auc": 0.9087618034986455,
+      "throughput_samples_per_sec": 225.65935979423872
+    }
+  }
+]

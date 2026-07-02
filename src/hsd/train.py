@@ -17,6 +17,13 @@ import click
 import numpy as np
 import yaml
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 from hsd.data.loaders import load_dataset
 from hsd.evaluate import (
     evaluate,
@@ -117,10 +124,35 @@ def _train_distilbert(cfg: dict, splits, three_way: bool):
     return y_pred, y_score
 
 
+def _train_llm(cfg: dict, splits, three_way: bool):
+    """LLM-as-classifier (Gemini). Binary only for v0.2.1."""
+    if three_way:
+        raise NotImplementedError("3-way LLM classification not supported in v0.2.1")
+    from hsd.models.llm import GeminiClassifier, LLMConfig
+
+    out = ensure_dir(ARTIFACTS_DIR / cfg["run_name"])
+    mkwargs = dict(cfg.get("model", {}))
+    # default the cache file name to the run_name so each (model, regime, dataset)
+    # gets its own cache file
+    mkwargs.setdefault("cache_name", cfg["run_name"])
+    mcfg = LLMConfig(**mkwargs)
+
+    model = GeminiClassifier(mcfg).fit(
+        splits.texts("train"),
+        _labels(splits, "train", three_way=False),
+    )
+    model.save(out)
+
+    y_score = model.predict_proba(splits.texts("test"))
+    y_pred = (y_score >= 0.5).astype(int)
+    return y_pred, y_score
+
+
 TRAINERS = {
     "tfidf": _train_tfidf,
     "doc2vec": _train_doc2vec,
     "distilbert": _train_distilbert,
+    "llm": _train_llm,
 }
 
 

@@ -339,6 +339,47 @@ dedicated normalisation steps --- subword pretraining alone is not enough.
 This is, in our view, a more useful finding than a comfortable
 ``transformers solve obfuscation'' headline would have been.
 
+\subsection{Two-stage cascade}
+\label{sec:cascade}
+
+The accuracy-cost gap reported in Section~\ref{sec:cost} argues for a
+two-stage architecture: a cheap prefilter handles the obvious-clean
+majority of traffic, and the expensive transformer reviews only the
+residual flagged by the prefilter. We implement this literally, without
+retraining: TF-IDF + LR from Section~\ref{sec:results} is stage~1,
+fine-tuned DistilBERT is stage~2. Samples whose stage-1 hate probability
+meets a threshold $t_1$ are re-scored by stage~2 and the stage-2 score
+is used as the final output. All other samples use the stage-1 score.
+We sweep $t_1$ over $\{0.05, 0.10, \ldots, 0.50\}$; final decision
+threshold is $0.5$ throughout.
+
+\input{tables/cascade.tex}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/cascade_frontier.png}
+  \caption{Test F$_1$-hate against estimated system throughput
+           (log-scale x-axis) as $t_1$ sweeps from $0.05$ to $0.50$.
+           The red marker is DistilBERT alone. Points to the upper-right
+           of DistilBERT alone dominate it in both accuracy and cost.}
+  \label{fig:cascade-frontier}
+\end{figure}
+
+The result is the deployment story implicit in the earlier sections
+made explicit. On Davidson, where the class prior is $5.8\%$ hate and
+most samples are trivially clean, a low stage-1 threshold routes the
+vast majority of traffic to the cheap prefilter while stage~2 handles
+only the ambiguous residual; the cascade matches or beats DistilBERT
+alone on F$_1$-hate at a multiple of the throughput. On HateXplain,
+which has a $31\%$ hate prior and a much smaller obvious-clean
+majority, the cascade helps less --- but the frontier is dominated by
+the cascade for any threshold at which stage-2 routing is below
+$\approx 70\%$. The practical implication is that the cost gap
+quantified in Section~\ref{sec:cost} translates directly into
+system-level throughput gains whenever the deployed corpus has a
+non-trivial obvious-clean majority --- which describes essentially
+every moderation queue in production.
+
 \section{Discussion}
 
 \paragraph{What the embeddings buy you.}
@@ -419,6 +460,41 @@ three seeds. Standard deviations are small relative to the
 between-model gaps in the headline table, with the largest variance
 appearing in the F$_1$-hate column on Davidson --- consistent with the
 class-imbalance discussion in Section~\ref{sec:threshold}.
+
+\section{LLM zero-shot and few-shot baselines}
+\label{app:llm}
+
+A reviewer in 2026 will reasonably ask: does a large instruction-tuned
+language model, used zero-shot, beat a small fine-tuned transformer on
+hate-speech classification? To answer this without changing the test
+protocol, we evaluate \texttt{gemini-2.5-flash} on the same Davidson and
+HateXplain test splits in two regimes:
+
+\begin{itemize}
+  \item \textbf{Zero-shot.} A system prompt defines hate speech against
+        protected attributes (race, religion, gender, sexuality,
+        disability) and instructs the model to output JSON
+        \texttt{\{label, p\_hate\}}. No labelled examples are provided.
+  \item \textbf{Four-shot.} Same prompt plus four labelled exemplars
+        drawn deterministically from the corresponding training split,
+        balanced two hate, two non-hate.
+\end{itemize}
+
+The \texttt{p\_hate} value emitted by the model serves as the score for
+ROC-AUC; the hard \texttt{label} (with threshold 0.5 as a fallback)
+gives the binary prediction.
+
+\input{tables/llm_results.tex}
+
+The finding is interpretable directly from the table. Where Gemini
+beats DistilBERT on macro-F$_1$ or AUC, the contribution is the
+general world-knowledge and the looser definition of hate speech
+implicit in the instruction-tuning data. Where DistilBERT wins, the
+contribution is task-specific fine-tuning on the corpus's particular
+annotation conventions. Few-shot does \emph{not} reliably help on this
+task: four exemplars do not overcome the calibration mismatch between
+an instruction-tuned classifier and a corpus-specific labelling scheme,
+and can shift the decision boundary in counter-productive ways.
 
 \bibliographystyle{plainnat}
 \bibliography{references}

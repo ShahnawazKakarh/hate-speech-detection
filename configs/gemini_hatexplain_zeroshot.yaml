@@ -1,0 +1,13 @@
+run_name: gemini_hatexplain_zeroshot
+model_type: llm
+dataset: hatexplain
+seed: 42
+wandb: false
+model:
+  model_name: gemini-2.5-flash
+  regime: zero_shot
+  temperature: 0.0
+  max_output_tokens: 64
+  request_timeout_s: 30.0
+  retry_attempts: 4
+  retry_backoff_s: 4.0

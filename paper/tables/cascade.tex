@@ -1,0 +1,10 @@
+\begin{tabular}{llcccccc}
+\toprule
+Dataset & Method & \% $\to$ stage 2 & F1\textsubscript{hate} & F1\textsubscript{macro} & AUC & Throughput (samples/s) \\
+\midrule
+davidson & DistilBERT alone & 100.0\% & 0.3682 & 0.6681 & 0.8966 & 303.9 \\
+davidson & Cascade (t1=0.50) & 10.2\% & 0.3777 & 0.6735 & 0.7878 & 2757.1 ($\times$9.1) \\
+hatexplain & DistilBERT alone & 100.0\% & 0.7568 & 0.8243 & 0.9088 & 225.7 \\
+hatexplain & Cascade (t1=0.35) & 52.3\% & 0.7580 & 0.8267 & 0.8572 & 425.6 ($\times$1.9) \\
+\bottomrule
+\end{tabular}
