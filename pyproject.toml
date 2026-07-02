@@ -49,6 +49,9 @@ dev = [
     "matplotlib>=3.8",
     "seaborn>=0.13",
     "pre-commit>=3.7",
+    "weasyprint>=61.0",
+    "markdown>=3.6",
+    "pymdown-extensions>=10.7",
 ]
 
 [project.scripts]

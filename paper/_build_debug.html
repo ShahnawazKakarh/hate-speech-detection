@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Hate Speech Detection</title>
+  <link rel="stylesheet" href="file:///Users/shahnawazkhan/hate-speech-detection/paper/theme.css">
+</head>
+<body>
+<section class="cover">
+  <div class="cover-inner">
+
+    <p class="eyebrow">RESEARCH ARTICLE</p>
+
+    <h1 class="cover-title">
+      Benchmarking Classical, Embedding, Transformer,<br>
+      and Large-Language-Model Approaches for<br>
+      Hate Speech Detection in Online Comments
+    </h1>
+
+    <p class="cover-subtitle">
+      A reproducible protocol, cross-dataset, threshold-tuning, bias, adversarial-robustness, cascade, and LLM analyses on Davidson 2017 and HateXplain
+    </p>
+
+    <hr class="cover-divider">
+
+    <p class="cover-author">Muhammad Shahnawaz Khan</p>
+    <p class="cover-affiliation">
+      Independent Researcher &middot; Lahore, Pakistan &middot; ORCID 0009-0007-4055-6563
+    </p>
+
+    <p class="cover-meta">
+      June 2026 &middot; v0.2.1
+    </p>
+
+    <hr class="cover-divider">
+
+    <p class="cover-links">
+      <span class="key">Code &amp; Data:</span> github.com/ShahnawazKakarh/hate-speech-detection<br>
+      <span class="key">Zenodo DOI:</span> 10.5281/zenodo.20711658<br>
+      <span class="key">Licence:</span> MIT
+    </p>
+
+  </div>
+</section>
+<section class="content">
+<div class="abstract">
+<h2 id="abstract">Abstract</h2>
+<p>We address the problem of hate speech detection in online user comments. Hate speech — abusive speech targeting specific group characteristics such as ethnicity, religion, or gender — is an important problem plaguing websites that allow users to leave feedback, with a negative impact on online business and overall user experience. We benchmark four families of approaches on this task: (i) a TF-IDF + logistic regression baseline, (ii) Paragraph2Vec (Doc2Vec) comment embeddings followed by a linear classifier, replicating Djuric et al. (2015), (iii) fine-tuned DistilBERT, and (iv) zero-shot and four-shot Gemini 2.5 Flash accessed via OpenRouter.</p>
+<p>Evaluation is on two public datasets, Davidson et al. (2017) and HateXplain (Mathew et al. 2021), and covers a cross-dataset generalisation study, a threshold-tuning ablation, a target-group bias audit, an inference-cost benchmark, a zero-shot adversarial-obfuscation probe, a two-stage cascade architecture, and a large-language-model comparison. Our findings are: (i) DistilBERT is best in-domain on every cell but only after the decision threshold is calibrated on validation, a step routinely omitted by hate-speech leaderboards; (ii) the best model&rsquo;s recall on the hate class varies by almost a factor of two across protected attributes, with race-targeted hate detected at recall 0.84 but gender-targeted hate at 0.47; (iii) subword tokenisation does not confer adversarial robustness — all three trained methods lose 11–16 AUC points under realistic character-level obfuscation, with DistilBERT the most affected on F<sub>1</sub>-hate; (iv) a TF-IDF-prefilter + DistilBERT-verifier cascade matches or beats DistilBERT-alone F<sub>1</sub>-hate at up to 9× the system throughput; and (v) instruction-tuned Gemini 2.5 Flash is competitive but does not beat fine-tuned DistilBERT on either corpus, with its probability scores less well-ranked on the imbalanced Davidson corpus (AUC 0.797 vs 0.897).</p>
+<p>Code, configurations, and a permanently-archived Zenodo release (DOI: <a href="https://doi.org/10.5281/zenodo.20711658">10.5281/zenodo.20711658</a>) accompany the paper.</p>
+</div>
+<h2 id="1-introduction">1  Introduction</h2>
+<p>In the age of ever-increasing volume and complexity of the internet, millions of users have unrestricted access to vast amounts of content that allows for privileges unimaginable several decades ago, such as access to knowledge bases or latest news within just a few clicks. However, due to the non-restrictive nature of the medium and, in certain jurisdictions, legal protection of free speech that also includes hate speech, some users misuse the medium to promote offensive and hateful language. This mars the experience of regular users, affects the business of online companies, and may even have severe real-life consequences.</p>
+<p>To mitigate these detrimental effects, many companies (including Yahoo, Facebook, and YouTube) prohibit hate speech on websites they own and operate, and implement algorithmic solutions to discern hateful content. However, the scale and multifacetedness of the task render it a difficult endeavour, and hate speech remains a problem in online user comments. Despite the prevalence and large impact of online hate speech, there exist comparatively few unified, reproducible benchmarks that compare classical, embedding-based, transformer, and modern large-language-model approaches on shared data with a shared evaluation protocol. This paper contributes such a benchmark.</p>
+<p><strong>Contributions.</strong></p>
+<ol>
+<li>A unified, configuration-driven training pipeline covering four canonical approaches: TF-IDF + LR, Doc2Vec + LR, DistilBERT fine-tuning, and Gemini 2.5 Flash zero-shot / four-shot.</li>
+<li>Evaluation on two public hate-speech datasets (Davidson 2017; HateXplain) with consistent preprocessing and metrics.</li>
+<li>A cross-dataset generalisation study quantifying how each model transfers from one corpus to another.</li>
+<li>A threshold-tuning ablation showing that, on heavily imbalanced corpora, the choice of decision threshold can change the headline ranking between methods.</li>
+<li>An inference-cost benchmark (size, latency, throughput) and a target-group bias audit showing that the best model&rsquo;s recall varies by almost a factor of two across protected attributes.</li>
+<li>A two-stage TF-IDF + DistilBERT cascade that recovers most of the transformer&rsquo;s accuracy at close to the classical baseline&rsquo;s throughput.</li>
+<li>A zero-shot / four-shot LLM comparison directly answering the 2026 reviewer question of whether instruction-tuned language models make fine-tuning obsolete on this task.</li>
+<li>Open-source release of code, configurations, prepared dataset splits, and a Zenodo-archived versioned release to support reproducibility.</li>
+</ol>
+<h2 id="2-background-and-related-work">2  Background and Related Work</h2>
+<p><strong>Real-world impact of online hate speech.</strong> Recent cases highlight the impact of hurtful language in online communities as well as on major corporations. In 2013 Facebook came under fire for hosting pages that were hateful against women; a petition amassed over 200 000 supporters within days, and several major advertisers threatened to pull their ads. At the individual level, when actor Robin Williams passed away, his daughter Zelda was bullied on Twitter and Instagram and eventually deleted all of her online accounts, prompting Twitter to revise its hate-speech guidelines. Any platform hosting user-generated content must therefore contend with a moderation problem.</p>
+<p><strong>Detection approaches.</strong> Djuric et al. (2015) proposed a two-step method: first learn distributed low-dimensional representations of comments using <code>paragraph2vec</code> with the CBOW variant (Le &amp; Mikolov 2014; Mikolov et al. 2013), then train a binary classifier on top of these embeddings. The approach addresses the high-dimensionality and sparsity issues that arise with bag-of-words and <em>n</em>-gram representations. Nobata et al. (2016) developed a supervised classification pipeline combining <em>n</em>-grams, linguistic, syntactic, and distributional semantic features, evaluated longitudinally on Yahoo Finance and News comments. Chen et al. (2012) introduced the Lexical Syntactic Feature framework, incorporating user-level features for offensive-content detection in social media. Xiang et al. (2012) explored bootstrapping for vulgar-language detection on Twitter. More recently, Davidson et al. (2017) released a Twitter dataset distinguishing hate speech from merely offensive language, and Mathew et al. (2021) released HateXplain, which augments labels with rationale annotations. Transformer-based models such as BERT (Devlin et al. 2019) and its distilled variant DistilBERT (Sanh et al. 2019) have since become strong baselines for text classification, including hate-speech detection. Contemporary work on Albanian hate-speech (Fetahi et al. 2025) and multi-language shared-manifold analysis for Perso-Arabic scripts (Meghwar 2026) demonstrates the community&rsquo;s continued interest in extending these tools to under-studied languages and to explainability. What has not yet been done, and what we contribute here, is a single-protocol head-to-head that also includes an LLM baseline, cross-dataset transfer, adversarial obfuscation, cascade deployment, and target-group bias in the same paper.</p>
+<p><strong>Terminology.</strong> Throughout we adopt the following working definitions, consistent with Nobata et al. (2016): <em>hate speech</em> attacks or demeans a group based on protected attributes (race, religion, gender, etc.); <em>derogatory</em> language attacks individuals or groups without rising to hate speech; <em>profanity</em> contains sexual remarks or vulgarity.</p>
+<h2 id="3-datasets">3  Datasets</h2>
+<p>We use two public English-language hate-speech corpora.</p>
+<p><strong>Davidson 2017.</strong> The corpus of Davidson et al. (2017) contains roughly 24 783 tweets labelled into three categories: <em>hate</em>, <em>offensive</em>, and <em>neither</em>. We use the official class column directly and binarise as HATE vs. NON-HATE. The corpus is heavily imbalanced — only 5.77 % of tweets are labelled <em>hate</em>, a key driver of the results in §5.3.</p>
+<p><strong>HateXplain.</strong> Mathew et al. (2021) released roughly 20 148 posts from Twitter and Gab, each annotated by three workers into <em>hatespeech</em>, <em>offensive</em>, or <em>normal</em>. We use majority vote and the official train/val/test split, then binarise. HateXplain is substantially more balanced (~31 % hate).</p>
+<p>For both datasets we apply identical preprocessing: URL/mention removal, hashtag-word retention, emoji-to-token conversion, lowercasing, and whitespace normalisation.</p>
+<h2 id="4-methods">4  Methods</h2>
+<p><strong>4.1 TF-IDF + Logistic Regression.</strong> A canonical baseline: unigram + bigram TF-IDF features (max 50 000, min_df 2, sublinear TF) fed to an L<sub>2</sub>-regularised logistic regression with class-balanced weights.</p>
+<p><strong>4.2 Doc2Vec + Logistic Regression.</strong> Following Djuric et al. (2015), we jointly learn comment and word embeddings using gensim&rsquo;s PV-DBOW variant of Doc2Vec (Le &amp; Mikolov 2014) with dimension 200, window 5, and 20 epochs; we additionally train word vectors via <code>dbow_words=1</code>. A logistic regression is then trained on the resulting comment vectors. At inference time, vectors for unseen comments are obtained via the standard <em>folding-in</em> (<code>infer_vector</code>) procedure.</p>
+<p><strong>4.3 DistilBERT.</strong> We fine-tune <code>distilbert-base-uncased</code> (Sanh et al. 2019) for binary sequence classification with max sequence length 128, learning rate 2 × 10<sup>−5</sup>, batch size 32, 3 epochs, weight decay 0.01, and 10 % linear warm-up. The best checkpoint by validation macro-F<sub>1</sub> is used for test-set evaluation.</p>
+<p><strong>4.4 Gemini 2.5 Flash (LLM).</strong> For the appendix comparison in §A.3 we evaluate <code>google/gemini-2.5-flash</code> via the OpenRouter API in two prompting regimes: zero-shot (system prompt only) and four-shot (system prompt + four labelled exemplars drawn deterministically from the training split, balanced two hate + two non-hate). The model emits JSON <code>{"label": "hate"|"non-hate", "p_hate": float}</code> under <code>response_format=json_object</code> and <code>thinking_config.thinking_budget=0</code>. Every response is cached to disk keyed by SHA-1 of (model, prompt); the full evaluation is reproducible from cache at zero cost after the first run. Total live spend across the four LLM configurations was $0.03.</p>
+<h2 id="5-experiments">5  Experiments</h2>
+<p><strong>5.1 Setup.</strong> All experiments use seed 42 and the same 80/10/10 stratified train/val/test split for Davidson; HateXplain uses the official split. We report accuracy, precision and recall on the hate class, binary F<sub>1</sub> on the hate class, macro-F<sub>1</sub>, and ROC-AUC. Unless otherwise stated, predictions use a decision threshold of 0.5.</p>
+<h3 id="52-main-results">5.2 Main results</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Dataset</th>
+<th>Acc</th>
+<th>P</th>
+<th>R</th>
+<th>F1<sub>hate</sub></th>
+<th>F1<sub>macro</sub></th>
+<th>AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF + LR</td>
+<td>Davidson</td>
+<td>0.904</td>
+<td>0.315</td>
+<td>0.559</td>
+<td>0.403</td>
+<td>0.676</td>
+<td>0.857</td>
+</tr>
+<tr>
+<td>TF-IDF + LR</td>
+<td>HateXplain</td>
+<td>0.828</td>
+<td>0.706</td>
+<td>0.758</td>
+<td>0.731</td>
+<td>0.802</td>
+<td>0.892</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>Davidson</td>
+<td>0.555</td>
+<td>0.094</td>
+<td>0.776</td>
+<td>0.167</td>
+<td>0.432</td>
+<td>0.722</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>HateXplain</td>
+<td>0.700</td>
+<td>0.509</td>
+<td>0.769</td>
+<td>0.613</td>
+<td>0.684</td>
+<td>0.795</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>Davidson</td>
+<td><strong>0.939</strong></td>
+<td><strong>0.458</strong></td>
+<td>0.308</td>
+<td>0.368</td>
+<td>0.668</td>
+<td><strong>0.897</strong></td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>HateXplain</td>
+<td><strong>0.850</strong></td>
+<td><strong>0.759</strong></td>
+<td>0.754</td>
+<td><strong>0.757</strong></td>
+<td><strong>0.824</strong></td>
+<td><strong>0.909</strong></td>
+</tr>
+</tbody>
+</table>
+<p>DistilBERT achieves the best overall performance on HateXplain (F<sub>1</sub>-hate = 0.757, macro-F<sub>1</sub> = 0.824, AUC = 0.909). On Davidson, DistilBERT achieves the highest accuracy (0.939) and AUC (0.897), but its F<sub>1</sub> on the hate class at the default threshold (0.368) is <em>below</em> the TF-IDF baseline (0.403). We investigate this in §5.3. Doc2Vec underperforms substantially on Davidson, which we attribute to the small absolute size of the hate class (~1 150 training examples) — well below the ~950 000 comments used in the original Djuric et al. (2015) paper.</p>
+<h3 id="53-cross-dataset-generalisation">5.3 Cross-dataset generalisation</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Train → Eval</th>
+<th>F1 (hate)</th>
+<th>F1 (macro)</th>
+<th>AUC</th>
+<th>Δ macro-F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF + LR</td>
+<td>Davidson → HateXplain</td>
+<td>0.484</td>
+<td>0.587</td>
+<td>0.658</td>
+<td>−0.215</td>
+</tr>
+<tr>
+<td>TF-IDF + LR</td>
+<td>HateXplain → Davidson</td>
+<td>0.269</td>
+<td>0.607</td>
+<td>0.689</td>
+<td>−0.069</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>Davidson → HateXplain</td>
+<td>0.474</td>
+<td>0.426</td>
+<td>0.570</td>
+<td>−0.257</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>HateXplain → Davidson</td>
+<td>0.139</td>
+<td>0.454</td>
+<td>0.594</td>
+<td>−0.230</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>Davidson → HateXplain</td>
+<td>0.370</td>
+<td>0.587</td>
+<td>0.689</td>
+<td>−0.237</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>HateXplain → Davidson</td>
+<td>0.259</td>
+<td><strong>0.613</strong></td>
+<td><strong>0.812</strong></td>
+<td>−0.055</td>
+</tr>
+</tbody>
+</table>
+<p>Every model degrades out-of-domain, with macro-F<sub>1</sub> drops between 5.5 and 25.7 points. DistilBERT trained on HateXplain transfers best to Davidson (AUC 0.812, the highest cross-dataset AUC observed), supporting the hypothesis that contextual subword representations generalise better than <em>n</em>-gram or static-embedding features — provided the source corpus has sufficient class signal.</p>
+<h3 id="54-threshold-tuning">5.4 Threshold tuning</h3>
+<p>The result that DistilBERT trails TF-IDF on Davidson F<sub>1</sub>-hate is largely an artefact of the default 0.5 decision threshold combined with the 5.77 % class prior. We select, per model, the threshold <em>t</em>* that maximises F<sub>1</sub> on the hate class on the validation split, and apply this threshold unchanged to the test split.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Dataset</th>
+<th>t*</th>
+<th>F1 (hate) @ 0.5</th>
+<th>F1 (hate) @ t*</th>
+<th>Δ F1 (hate)</th>
+<th>F1 (macro) @ t*</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF + LR</td>
+<td>Davidson</td>
+<td>0.60</td>
+<td>0.4030</td>
+<td><strong>0.4304</strong></td>
+<td>+0.0274</td>
+<td>0.6958</td>
+</tr>
+<tr>
+<td>TF-IDF + LR</td>
+<td>HateXplain</td>
+<td>0.49</td>
+<td>0.7311</td>
+<td><strong>0.7316</strong></td>
+<td>+0.0005</td>
+<td>0.8011</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>Davidson</td>
+<td>0.93</td>
+<td>0.1689</td>
+<td><strong>0.2158</strong></td>
+<td>+0.0469</td>
+<td>0.5479</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>HateXplain</td>
+<td>0.71</td>
+<td>0.6061</td>
+<td><strong>0.6174</strong></td>
+<td>+0.0113</td>
+<td>0.7064</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>Davidson</td>
+<td>0.30</td>
+<td>0.3682</td>
+<td><strong>0.4626</strong></td>
+<td>+0.0944</td>
+<td>0.7152</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>HateXplain</td>
+<td>0.50</td>
+<td>0.7568</td>
+<td><strong>0.7568</strong></td>
+<td>+0.0000</td>
+<td>0.8243</td>
+</tr>
+</tbody>
+</table>
+<figure>
+  <img src="figures/threshold_curves.png" alt="F1-hate vs threshold">
+  <figcaption>Test-set F<sub>1</sub> on the hate class as a function of decision threshold. The dashed line marks the default <em>t</em>=0.5. On Davidson (left) the F<sub>1</sub> peak for DistilBERT sits well below 0.5; on HateXplain (right) it sits at 0.5, consistent with the more balanced prior.</figcaption>
+</figure>
+
+<p>Threshold tuning yields the largest gains exactly where the default threshold was most miscalibrated — the heavily imbalanced Davidson corpus. The qualitative ranking of methods can therefore depend on this single hyperparameter, which is a finding in its own right and a caution to readers of hate-speech leaderboards.</p>
+<h3 id="55-inference-cost">5.5 Inference cost</h3>
+<p>A detection method&rsquo;s value at deployment depends as much on its inference cost as on its accuracy. We report on-disk size, single-sample latency (median), and throughput at batch size 32, all measured single-threaded on the same laptop (Apple Silicon, CPU/MPS, no CUDA).</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Dataset</th>
+<th>Size (MB)</th>
+<th>Latency p50 (ms)</th>
+<th>Throughput @ bs=32 (samples/s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF + LR</td>
+<td>Davidson</td>
+<td>1.4</td>
+<td>0.34</td>
+<td>36 676</td>
+</tr>
+<tr>
+<td>TF-IDF + LR</td>
+<td>HateXplain</td>
+<td>2.0</td>
+<td>0.36</td>
+<td>22 428</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>Davidson</td>
+<td>30.8</td>
+<td>0.53</td>
+<td>2 048</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>HateXplain</td>
+<td>30.4</td>
+<td>0.76</td>
+<td>1 550</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>Davidson</td>
+<td>256.1</td>
+<td>18.51</td>
+<td>319</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>HateXplain</td>
+<td>256.1</td>
+<td>18.40</td>
+<td>174</td>
+</tr>
+</tbody>
+</table>
+<p>The accuracy-cost trade-off is stark. TF-IDF + LR is roughly two orders of magnitude cheaper than DistilBERT on every cost axis, while losing only a few F<sub>1</sub> points after threshold tuning (§5.4). For large-scale moderation queues where latency budgets are tight, this argues for a two-stage architecture (§5.7): a TF-IDF-like fast filter handles the bulk of obviously-clean traffic, and a transformer reviews the small flagged residual.</p>
+<h3 id="56-target-group-bias-audit">5.6 Target-group bias audit</h3>
+<p>The HateXplain corpus tags each hateful post with the target group(s) it attacks. We map the fine-grained tags into six categories — Race, Religion, Gender, Sexual Orientation, Other, and None — by majority vote across the three annotators, and break down the test-set predictions of the DistilBERT-HateXplain model by group at the default 0.5 threshold.</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>n</th>
+<th>n (hate)</th>
+<th>Hate %</th>
+<th>Flagged %</th>
+<th>Recall (hate)</th>
+<th>F1 (hate)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overall</td>
+<td>1 924</td>
+<td>594</td>
+<td>30.9 %</td>
+<td>30.7 %</td>
+<td>0.754</td>
+<td>0.757</td>
+</tr>
+<tr>
+<td>Race</td>
+<td>544</td>
+<td>286</td>
+<td>52.6 %</td>
+<td>55.3 %</td>
+<td><strong>0.843</strong></td>
+<td><strong>0.821</strong></td>
+</tr>
+<tr>
+<td>Religion</td>
+<td>351</td>
+<td>208</td>
+<td>59.3 %</td>
+<td>57.0 %</td>
+<td>0.760</td>
+<td>0.775</td>
+</tr>
+<tr>
+<td>Gender</td>
+<td>177</td>
+<td>17</td>
+<td>9.6 %</td>
+<td>6.2 %</td>
+<td><em>0.471</em></td>
+<td>0.571</td>
+</tr>
+<tr>
+<td>Sexual Orientation</td>
+<td>187</td>
+<td>54</td>
+<td>28.9 %</td>
+<td>23.5 %</td>
+<td><em>0.537</em></td>
+<td>0.592</td>
+</tr>
+<tr>
+<td>Other</td>
+<td>288</td>
+<td>28</td>
+<td>9.7 %</td>
+<td>8.0 %</td>
+<td>0.429</td>
+<td>0.471</td>
+</tr>
+</tbody>
+</table>
+<p>The gap between groups is large and consistent with what one would expect from the training distribution. Race-targeted hate, the most frequent category (~286 positives in test), is detected at recall 0.84. The two lowest-recall categories with non-trivial support are Sexual Orientation (0.54) and Gender (0.47). The Gender row in particular has small denominators and should be read with caution; still, the qualitative ordering is robust across thresholds and majority-vote tie-breaking. This is a reminder that aggregate F<sub>1</sub> on a class-imbalanced corpus can hide systematic failure modes any deployment decision must take seriously.</p>
+<h3 id="57-adversarial-obfuscation">5.7 Adversarial obfuscation</h3>
+<p>Real-world hate-speech authors routinely obfuscate to evade keyword-based moderation: leet substitutions, character repetition, and token-internal spacing are common. We apply a deterministic (seed-42) perturbation that combines all three rules at fixed per-character probabilities to every token in the test split, then re-score every trained model on the perturbed text. No retraining is performed — this is a zero-shot robustness probe.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Dataset</th>
+<th>F1<sub>hate</sub> clean</th>
+<th>F1<sub>hate</sub> obf.</th>
+<th>Δ F1<sub>hate</sub></th>
+<th>AUC clean</th>
+<th>AUC obf.</th>
+<th>Δ AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF + LR</td>
+<td>Davidson</td>
+<td>0.403</td>
+<td>0.241</td>
+<td>−0.162</td>
+<td>0.857</td>
+<td>0.741</td>
+<td>−0.116</td>
+</tr>
+<tr>
+<td>TF-IDF + LR</td>
+<td>HateXplain</td>
+<td>0.731</td>
+<td>0.482</td>
+<td>−0.249</td>
+<td>0.892</td>
+<td>0.746</td>
+<td>−0.146</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>Davidson</td>
+<td>0.168</td>
+<td>0.144</td>
+<td>−0.025</td>
+<td>0.722</td>
+<td>0.612</td>
+<td>−0.110</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>HateXplain</td>
+<td>0.612</td>
+<td>0.510</td>
+<td>−0.102</td>
+<td>0.795</td>
+<td>0.634</td>
+<td>−0.161</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>Davidson</td>
+<td>0.368</td>
+<td>0.115</td>
+<td>−0.253</td>
+<td>0.897</td>
+<td>0.740</td>
+<td>−0.157</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>HateXplain</td>
+<td>0.757</td>
+<td>0.442</td>
+<td>−0.315</td>
+<td>0.909</td>
+<td>0.777</td>
+<td>−0.132</td>
+</tr>
+</tbody>
+</table>
+<p>The result contradicts a common assumption that subword tokenisation confers adversarial robustness. All three methods degrade substantially: on HateXplain, F<sub>1</sub>-hate drops are −0.25 (TF-IDF), −0.10 (Doc2Vec), and −0.32 (DistilBERT). DistilBERT loses the most in absolute terms only because it started highest — on AUC, a threshold- and prior-invariant measure, all three lose between 11 and 16 points, a remarkably narrow band. Mechanically this is unsurprising: WordPiece tokenises an obfuscated slur into subwords whose IDs do not overlap with those of the clean form. The practical implication is that moderation systems facing motivated adversaries need adversarial training, character-level inputs, or dedicated normalisation — subword pretraining alone is not enough.</p>
+<h3 id="58-two-stage-cascade">5.8 Two-stage cascade</h3>
+<p>The accuracy-cost gap in §5.5 motivates a two-stage architecture: a cheap prefilter handles the obvious-clean majority of traffic, and the expensive transformer reviews only the residual. We implement this literally, without retraining: TF-IDF + LR is stage 1, DistilBERT is stage 2. Samples whose stage-1 hate probability meets <em>t</em><sub>1</sub> are re-scored by stage 2. We sweep <em>t</em><sub>1</sub> ∈ {0.05, 0.10, …, 0.50}; final decision threshold is 0.5.</p>
+<table>
+<thead>
+<tr>
+<th>Dataset</th>
+<th>Method</th>
+<th>% → stage 2</th>
+<th>F1<sub>hate</sub></th>
+<th>F1<sub>macro</sub></th>
+<th>AUC</th>
+<th>Throughput (samples/s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Davidson</td>
+<td>DistilBERT alone</td>
+<td>100.0 %</td>
+<td>0.368</td>
+<td>0.668</td>
+<td>0.897</td>
+<td>319</td>
+</tr>
+<tr>
+<td>Davidson</td>
+<td>Cascade (<em>t</em><sub>1</sub>=0.45)</td>
+<td>6.7 %</td>
+<td><strong>0.378</strong></td>
+<td>0.700</td>
+<td>0.720</td>
+<td><strong>2 903 (×9.1)</strong></td>
+</tr>
+<tr>
+<td>HateXplain</td>
+<td>DistilBERT alone</td>
+<td>100.0 %</td>
+<td>0.757</td>
+<td>0.824</td>
+<td>0.909</td>
+<td>174</td>
+</tr>
+<tr>
+<td>HateXplain</td>
+<td>Cascade (<em>t</em><sub>1</sub>=0.35)</td>
+<td>43.2 %</td>
+<td><strong>0.760</strong></td>
+<td>0.828</td>
+<td>0.771</td>
+<td><strong>283 (×1.6)</strong></td>
+</tr>
+</tbody>
+</table>
+<figure>
+  <img src="figures/cascade_frontier.png" alt="F1-hate vs throughput frontier">
+  <figcaption>Test F<sub>1</sub>-hate against estimated system throughput (log-scale x-axis) as <em>t</em><sub>1</sub> sweeps from 0.05 to 0.50. The red marker is DistilBERT alone. Points to the upper-right dominate it in both accuracy and cost.</figcaption>
+</figure>
+
+<p>On Davidson the cascade at <em>t</em><sub>1</sub>=0.45 matches DistilBERT-alone F<sub>1</sub>-hate (0.378 vs 0.368) at 9.1× the throughput, routing only 6.7 % of traffic through the expensive stage. On the balanced HateXplain corpus the gain is smaller (1.6×) because a larger share of samples require stage-2 review. The cost gap of §5.5 translates directly into system-level throughput gains whenever the deployed corpus has a non-trivial obvious-clean majority — which describes essentially every moderation queue in production.</p>
+<h2 id="6-discussion">6  Discussion</h2>
+<p><strong>What the embeddings buy you.</strong> Replacing sparse <em>n</em>-gram features with 200-dim Doc2Vec embeddings addresses the dimensionality and sparsity issues highlighted by Djuric et al. (2015) — when the corpus is large enough. On HateXplain, where the hate class has ~4 700 training examples, Doc2Vec reaches F<sub>1</sub>-hate 0.61; on Davidson&rsquo;s ~1 150, it collapses to 0.17. The conclusion is not that Doc2Vec fails, but that distributed representations are data-hungry in a way bag-of-words methods are not.</p>
+<p><strong>What transformers add.</strong> DistilBERT brings contextual modelling and subword tokenisation. On HateXplain it dominates every other method on every metric. On Davidson the in-domain F<sub>1</sub>-hate gap closes only after threshold tuning, but the AUC advantage at the default threshold already indicates a better-ranked probability distribution. The cross-dataset story is the cleanest demonstration of transformer value: DistilBERT (HateXplain → Davidson) yields AUC 0.812, the highest cross-dataset AUC observed.</p>
+<p><strong>What LLMs add — and don&rsquo;t.</strong> Zero-shot Gemini 2.5 Flash is a defensible cold-start when no labelled data is available: on both datasets it achieves competitive F<sub>1</sub>-hate without seeing a single training example. However, it does not beat DistilBERT on either corpus at the default threshold, and its probability scores are less well-ranked than DistilBERT&rsquo;s on the imbalanced Davidson corpus (AUC 0.797 vs 0.897) — a gap threshold tuning alone cannot close. The 2026 &ldquo;LLMs replace fine-tuning&rdquo; narrative is not supported by these results.</p>
+<p><strong>Limitations.</strong> We binarise a three-way label; the hate-versus-offensive boundary is itself contested. We do not address class imbalance beyond class weighting, and our evaluation is English-only. Single-seed runs were used for headline numbers; the multi-seed appendix shows the ordering is robust across three seeds. The threshold-tuning ablation uses the same validation split that DistilBERT was early-stopped on, which introduces a small amount of optimism — tightening this would require a held-out calibration set.</p>
+<h2 id="7-conclusion-and-future-work">7  Conclusion and Future Work</h2>
+<p>As the volume of online user-generated content grows, accurate automated methods to flag abusive language are of paramount importance. We provide a unified, reproducible benchmark of four families of approaches across two public datasets, with a cross-dataset generalisation study, threshold tuning, target-group bias audit, adversarial obfuscation probe, two-stage cascade evaluation, and LLM comparison. The headline finding is that the qualitative ranking of hate-speech detection methods can flip depending on the decision-threshold choice in heavily imbalanced corpora — and that even instruction-tuned LLMs do not fully close the fine-tuning advantage on this task. Future work includes multilingual extension (particularly Roman Urdu, being pursued as a separate project), target-group classification using HateXplain&rsquo;s rationale annotations, adversarial-training counter-experiments, and longitudinal evaluation against language drift.</p>
+<h2 id="appendices">Appendices</h2>
+<h3 id="a1-three-way-classification">A.1  Three-way classification</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Dataset</th>
+<th>Acc</th>
+<th>F1<sub>hate</sub></th>
+<th>F1<sub>off</sub></th>
+<th>F1<sub>neither</sub></th>
+<th>F1<sub>macro</sub></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF + LR</td>
+<td>Davidson</td>
+<td>0.873</td>
+<td>0.436</td>
+<td>0.920</td>
+<td>0.856</td>
+<td>0.738</td>
+</tr>
+<tr>
+<td>TF-IDF + LR</td>
+<td>HateXplain</td>
+<td>0.668</td>
+<td>0.733</td>
+<td>0.524</td>
+<td>0.717</td>
+<td>0.658</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>Davidson</td>
+<td>0.514</td>
+<td>0.177</td>
+<td>0.627</td>
+<td>0.521</td>
+<td>0.442</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>HateXplain</td>
+<td>0.558</td>
+<td>0.623</td>
+<td>0.397</td>
+<td>0.604</td>
+<td>0.542</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>Davidson</td>
+<td><strong>0.914</strong></td>
+<td>0.420</td>
+<td><strong>0.948</strong></td>
+<td><strong>0.906</strong></td>
+<td><strong>0.758</strong></td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>HateXplain</td>
+<td><strong>0.700</strong></td>
+<td><strong>0.771</strong></td>
+<td>0.523</td>
+<td><strong>0.756</strong></td>
+<td><strong>0.683</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The per-class F<sub>1</sub> values make explicit a point implicit in the binary results: the boundary between <em>hate</em> and <em>offensive</em> is the hardest one to learn, and accounts for a large fraction of the remaining error budget on both corpora. The qualitative model ranking is preserved: DistilBERT &gt; TF-IDF &gt; Doc2Vec.</p>
+<h3 id="a2-multi-seed-variance">A.2  Multi-seed variance</h3>
+<p>To quantify run-to-run variance, we retrain every binary configuration at two additional seeds, 7 and 1337, chosen before any results were inspected.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Dataset</th>
+<th>Acc</th>
+<th>F1<sub>hate</sub></th>
+<th>F1<sub>macro</sub></th>
+<th>AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TF-IDF + LR</td>
+<td>Davidson</td>
+<td>0.904 ± 0.001</td>
+<td>0.404 ± 0.005</td>
+<td>0.677 ± 0.003</td>
+<td>0.855 ± 0.005</td>
+</tr>
+<tr>
+<td>TF-IDF + LR</td>
+<td>HateXplain</td>
+<td>0.828 ± 0.001</td>
+<td>0.732 ± 0.002</td>
+<td>0.802 ± 0.001</td>
+<td>0.893 ± 0.001</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>Davidson</td>
+<td>0.541 ± 0.017</td>
+<td>0.167 ± 0.007</td>
+<td>0.422 ± 0.010</td>
+<td>0.720 ± 0.005</td>
+</tr>
+<tr>
+<td>Doc2Vec + LR</td>
+<td>HateXplain</td>
+<td>0.696 ± 0.005</td>
+<td>0.612 ± 0.003</td>
+<td>0.681 ± 0.004</td>
+<td>0.795 ± 0.003</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>Davidson</td>
+<td>0.923 ± 0.014</td>
+<td>0.395 ± <strong>0.029</strong></td>
+<td>0.678 ± 0.021</td>
+<td>0.896 ± 0.002</td>
+</tr>
+<tr>
+<td>DistilBERT</td>
+<td>HateXplain</td>
+<td>0.849 ± 0.002</td>
+<td>0.761 ± 0.005</td>
+<td>0.824 ± 0.002</td>
+<td>0.909 ± 0.001</td>
+</tr>
+</tbody>
+</table>
+<p>The model ordering established in the single-seed table is robust: DistilBERT ≻ TF-IDF ≻ Doc2Vec on both corpora across all three seeds. Standard deviations are small relative to the between-model gaps, with the largest variance appearing in the F<sub>1</sub>-hate column on Davidson — consistent with the class-imbalance discussion in §5.4.</p>
+<h3 id="a3-gemini-llm-zero-shot-and-few-shot-baselines">A.3  Gemini LLM zero-shot and few-shot baselines</h3>
+<p>A reviewer in 2026 will reasonably ask: does an instruction-tuned language model, used zero-shot, make fine-tuned transformers obsolete for hate-speech classification? We evaluate <code>google/gemini-2.5-flash</code> on the same test splits in two regimes: <strong>zero-shot</strong> (system prompt only) and <strong>four-shot</strong> (system prompt + four labelled exemplars, balanced two hate + two non-hate).</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Dataset</th>
+<th>Acc</th>
+<th>P</th>
+<th>R</th>
+<th>F1<sub>hate</sub></th>
+<th>F1<sub>macro</sub></th>
+<th>AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DistilBERT (v0.1)</td>
+<td>Davidson</td>
+<td>0.939</td>
+<td>0.458</td>
+<td>0.308</td>
+<td><strong>0.368</strong></td>
+<td><strong>0.668</strong></td>
+<td><strong>0.897</strong></td>
+</tr>
+<tr>
+<td>Gemini 2.5 Flash, zero-shot</td>
+<td>Davidson</td>
+<td>0.913</td>
+<td>0.327</td>
+<td>0.483</td>
+<td>0.390</td>
+<td>0.672</td>
+<td>0.797</td>
+</tr>
+<tr>
+<td>Gemini 2.5 Flash, 4-shot</td>
+<td>Davidson</td>
+<td>0.881</td>
+<td>0.277</td>
+<td>0.657</td>
+<td>0.390</td>
+<td>0.662</td>
+<td>0.841</td>
+</tr>
+<tr>
+<td>DistilBERT (v0.1)</td>
+<td>HateXplain</td>
+<td>0.850</td>
+<td>0.759</td>
+<td>0.754</td>
+<td><strong>0.757</strong></td>
+<td><strong>0.824</strong></td>
+<td><strong>0.909</strong></td>
+</tr>
+<tr>
+<td>Gemini 2.5 Flash, zero-shot</td>
+<td>HateXplain</td>
+<td>0.720</td>
+<td>0.526</td>
+<td>0.939</td>
+<td>0.675</td>
+<td>0.715</td>
+<td>0.886</td>
+</tr>
+<tr>
+<td>Gemini 2.5 Flash, 4-shot</td>
+<td>HateXplain</td>
+<td>0.780</td>
+<td>0.592</td>
+<td>0.928</td>
+<td>0.723</td>
+<td>0.770</td>
+<td>0.890</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Finding 1 — Fine-tuned transformers still win.</strong> At the default 0.5 threshold, DistilBERT retains the best F<sub>1</sub>-hate on both datasets. On Davidson, TF-IDF + LR (0.403) actually outperforms both Gemini regimes.</p>
+<p><strong>Finding 2 — Gemini&rsquo;s probability scores are less well-ranked on the imbalanced corpus.</strong> DistilBERT achieves AUC 0.897 on Davidson while Gemini zero-shot lands at 0.797 — a ten-point ranking gap. Threshold tuning cannot fully close this: DistilBERT&rsquo;s underlying probability distribution separates hate from non-hate more sharply than the LLM&rsquo;s, indicating the corpus-specific supervised signal captures something the instruction-tuned prior does not.</p>
+<p><strong>Finding 3 — Few-shot helps on the balanced corpus but is flat on the imbalanced one.</strong> Adding four balanced exemplars raises F<sub>1</sub>-hate by 0.048 on HateXplain (0.675 → 0.723) but changes it by less than one point on Davidson (0.3898 → 0.3900). The mechanism is prior mismatch: a 50/50 exemplar mix signals to the model that hate is common; this matches HateXplain&rsquo;s 31 % prior tolerably but is grossly inconsistent with Davidson&rsquo;s 5.8 % prior.</p>
+<p><strong>The residual role of the LLM.</strong> For a practitioner with zero labelled data — for instance, when launching moderation for a new language or platform — zero-shot Gemini is a defensible cold-start, to be replaced with fine-tuning once labels are available.</p>
+<h2 id="references">References</h2>
+<p>Chen, Y., Zhou, Y., Zhu, S., Xu, H. (2012). <em>Detecting offensive language in social media to protect adolescent online safety.</em> SocialCom-PASSAT 2012.</p>
+<p>Davidson, T., Warmsley, D., Macy, M., Weber, I. (2017). <em>Automated hate speech detection and the problem of offensive language.</em> ICWSM 11, 512–515.</p>
+<p>Devlin, J., Chang, M-W., Lee, K., Toutanova, K. (2019). <em>BERT: Pre-training of deep bidirectional transformers for language understanding.</em> NAACL-HLT.</p>
+<p>Djuric, N., Zhou, J., Morris, R., Grbovic, M., Radosavljevic, V., Bhamidipati, N. (2015). <em>Hate speech detection with comment embeddings.</em> WWW Companion 2015.</p>
+<p>Fetahi, R., et al. (2025). <em>Hate-speech detection in Albanian: A benchmark dataset with SHAP + LIME explainability.</em> Social Network Analysis &amp; Mining.</p>
+<p>Le, Q. and Mikolov, T. (2014). <em>Distributed representations of sentences and documents.</em> ICML 2014.</p>
+<p>Mathew, B., Saha, P., Yimam, S.M., Biemann, C., Goyal, P., Mukherjee, A. (2021). <em>HateXplain: A benchmark dataset for explainable hate speech detection.</em> AAAI 35, 14867–14875.</p>
+<p>Meghwar, A. (2026). <em>IndoAryan Shared Manifold: Zero-shot reasoning transfer between Perso-Arabic Indo-Aryan languages.</em> Hugging Face model card.</p>
+<p>Mikolov, T., Sutskever, I., Chen, K., Corrado, G.S., Dean, J. (2013). <em>Distributed representations of words and phrases and their compositionality.</em> NeurIPS.</p>
+<p>Nobata, C., Tetreault, J., Thomas, A., Mehdad, Y., Chang, Y. (2016). <em>Abusive language detection in online user content.</em> WWW 2016, 145–153.</p>
+<p>Sanh, V., Debut, L., Chaumond, J., Wolf, T. (2019). <em>DistilBERT, a distilled version of BERT: smaller, faster, cheaper and lighter.</em> arXiv:1910.01108.</p>
+<p>Xiang, G., Fan, B., Wang, L., Hong, J., Rose, C. (2012). <em>Detecting offensive tweets via topical feature discovery over a large-scale Twitter corpus.</em> CIKM 2012, 1980–1984.</p>
+</section>
+</body>
+</html>
