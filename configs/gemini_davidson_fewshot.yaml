@@ -4,12 +4,16 @@ dataset: davidson
 seed: 42
 wandb: false
 model:
-  model_name: gemini-2.5-flash
+  model_name: google/gemini-2.5-flash
   regime: few_shot
   k_shots: 4
   seed: 42
   temperature: 0.0
-  max_output_tokens: 64
-  request_timeout_s: 30.0
+  max_output_tokens: 96
+  request_timeout_s: 60.0
   retry_attempts: 4
   retry_backoff_s: 4.0
+  request_interval_s: 0.0
+  # Few-shot prompts are ~2x zero-shot in tokens; raise ceiling accordingly
+  cost_ceiling_usd: 1.00
+  confirm_over_usd: 0.30

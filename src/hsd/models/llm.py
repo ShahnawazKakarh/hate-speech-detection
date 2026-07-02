@@ -1,23 +1,31 @@
-"""Gemini-backed LLM classifier with disk caching and quota-resilient calls.
+"""LLM-as-classifier via OpenRouter (OpenAI-compatible API).
 
-Wraps a Gemini model (default ``gemini-2.5-flash``) behind the same
-``fit`` / ``predict`` / ``predict_proba`` interface as the other ``hsd`` models.
+Wraps any OpenRouter-hosted model behind the ``fit`` / ``predict`` /
+``predict_proba`` interface used by the other ``hsd`` models. Switch
+models by editing ``model_name`` in the YAML config.
 
-``fit`` is a no-op for zero-shot; for few-shot it deterministically samples K
-labelled examples from the training set and bakes them into the prompt.
+Design goals, prioritising no-wastage:
 
-Inference asks the model to emit JSON ``{"label": "hate"|"non-hate", "p_hate": float}``
-so we get both a hard label and a probability-like score for ROC-AUC.
+  1. **Per-call disk cache.** Every successful response is persisted
+     to ``data/llm_cache/<cache_name>.jsonl`` immediately, keyed by
+     ``sha1(model_name || prompt)``. Re-running the same config is
+     free. Errored entries are stored but treated as cache-misses on
+     the next load so they retry naturally.
 
-**Quota resilience:**
-- Every successful response is persisted to ``data/llm_cache/<run_name>.jsonl``
-  immediately. Re-runs resume from the next un-cached row at zero cost.
-- 429 / ``RESOURCE_EXHAUSTED`` errors trigger a controlled abort with a clear
-  message, *after* the cache is flushed, so no work is lost.
-- Inter-call pacing via ``request_interval_s`` keeps us under the RPM ceiling.
+  2. **Pre-flight cost estimate.** Before any API call, the number of
+     cache-miss calls is multiplied by an average-token estimate and
+     the model's price. If the estimate exceeds
+     ``confirm_over_usd`` (default $0.20), the script aborts with a
+     clear instruction unless ``HSD_CONFIRM_COST=1`` is set. If it
+     exceeds ``cost_ceiling_usd`` (default $1.00), the script always
+     aborts.
+
+  3. **Live spend counter.** Every call records actual usage from
+     the API response. Running total is printed on the progress bar.
+     If total exceeds ``cost_ceiling_usd`` mid-run, we hard-stop.
 
 Env:
-    GEMINI_API_KEY   required (or set in .env)
+    OPENROUTER_API_KEY   required, from https://openrouter.ai/keys
 """
 
 from __future__ import annotations
@@ -40,23 +48,46 @@ log = get_logger(__name__)
 
 
 # --------------------------------------------------------------------------- #
+# Pricing table (USD per 1M tokens). Adjust as OpenRouter prices change.
+# Fetch live prices from https://openrouter.ai/api/v1/models if precision
+# matters more than deterministic pre-flight estimates.
+OPENROUTER_PRICING: dict[str, dict[str, float]] = {
+    "google/gemini-2.5-flash": {"input": 0.075, "output": 0.30},
+    "google/gemini-2.5-flash-lite": {"input": 0.025, "output": 0.10},
+    "google/gemini-2.5-pro": {"input": 1.25, "output": 5.00},
+    "anthropic/claude-3.5-haiku": {"input": 0.80, "output": 4.00},
+    "anthropic/claude-haiku-4.5": {"input": 1.00, "output": 5.00},
+    "anthropic/claude-sonnet-4.5": {"input": 3.00, "output": 15.00},
+    "meta-llama/llama-3.3-70b-instruct": {"input": 0.13, "output": 0.40},
+    "meta-llama/llama-3.1-8b-instruct": {"input": 0.03, "output": 0.06},
+    "deepseek/deepseek-chat": {"input": 0.14, "output": 0.28},
+    "qwen/qwen-2.5-72b-instruct": {"input": 0.35, "output": 0.40},
+}
+
+
+# --------------------------------------------------------------------------- #
 @dataclass
 class LLMConfig:
-    """Config for the Gemini LLM classifier."""
+    """Config for the OpenRouter-backed LLM classifier."""
 
-    model_name: str = "gemini-2.5-flash"
+    model_name: str = "google/gemini-2.5-flash"
     regime: str = "zero_shot"  # zero_shot | few_shot
     k_shots: int = 4
     seed: int = 42
-    max_output_tokens: int = 64
+    max_output_tokens: int = 96
     temperature: float = 0.0
-    request_timeout_s: float = 30.0
+    request_timeout_s: float = 60.0
     retry_attempts: int = 4
     retry_backoff_s: float = 4.0
-    # Pacing — Gemini free tier is RPM-limited. Default 5 = 12 req/min.
-    request_interval_s: float = 5.0
+    # Pacing (OpenRouter passes through to upstream; free-tier models are RPM-limited)
+    request_interval_s: float = 0.0
+    # Cache
     cache_dir: str = "data/llm_cache"
-    cache_name: str = "gemini"
+    cache_name: str = "llm"
+    # Cost safety
+    cost_ceiling_usd: float = 1.0  # hard stop, always enforced
+    confirm_over_usd: float = 0.20  # require HSD_CONFIRM_COST=1 above this
+    avg_output_tokens_estimate: int = 50  # for pre-flight, before we know actual
 
 
 # --------------------------------------------------------------------------- #
@@ -74,7 +105,7 @@ NOT hate speech (label = "non-hate"):
 Output strict JSON only, no other text:
 {"label": "hate" | "non-hate", "p_hate": <float between 0.0 and 1.0>}
 
-`p_hate` is your calibrated probability that the comment is hate speech. Be honest about uncertainty: borderline / ambiguous cases should get probabilities near 0.5, not extremes.
+`p_hate` is your calibrated probability that the comment is hate speech. Borderline / ambiguous cases should get probabilities near 0.5, not extremes.
 """
 
 
@@ -92,12 +123,17 @@ def _build_user_prompt(text: str, examples: list[tuple[str, int]] | None = None)
 
 # --------------------------------------------------------------------------- #
 class QuotaExhausted(Exception):
-    """Raised when the API returns a 429 / quota error so we can stop cleanly."""
+    """Raised on 429 / RESOURCE_EXHAUSTED so callers can abort cleanly."""
+
+
+class CostCeilingHit(Exception):
+    """Raised when running spend crosses ``cost_ceiling_usd``."""
 
 
 # --------------------------------------------------------------------------- #
 class _DiskCache:
-    """Append-only JSONL cache keyed by sha1(prompt). Crash-safe."""
+    """Append-only JSONL cache. Errored entries are stored (for debugging)
+    but ``get()`` returns None for them so they retry on the next run."""
 
     def __init__(self, path: Path):
         self.path = path
@@ -114,22 +150,24 @@ class _DiskCache:
                         self._mem[row["key"]] = row["response"]
                     except Exception:  # noqa: BLE001
                         continue
-            log.info("cache: loaded %d entries from %s", len(self._mem), self.path)
+            n_ok = sum(1 for r in self._mem.values() if not r.get("errored"))
+            n_err = len(self._mem) - n_ok
+            log.info("cache: %d ok + %d errored from %s", n_ok, n_err, self.path)
 
     @staticmethod
-    def key_for(prompt: str) -> str:
-        return hashlib.sha1(prompt.encode("utf-8")).hexdigest()
+    def key_for(model_name: str, prompt: str) -> str:
+        return hashlib.sha1(f"{model_name}\n{prompt}".encode()).hexdigest()
 
     def get(self, key: str) -> dict | None:
-        return self._mem.get(key)
+        entry = self._mem.get(key)
+        if entry is None or entry.get("errored"):
+            return None
+        return entry
 
     def put(self, key: str, response: dict) -> None:
         self._mem[key] = response
         with self.path.open("a") as f:
             f.write(json.dumps({"key": key, "response": response}) + "\n")
-
-    def __len__(self) -> int:
-        return len(self._mem)
 
 
 # --------------------------------------------------------------------------- #
@@ -158,36 +196,44 @@ def _parse_response_text(text: str) -> tuple[int, float]:
 
 
 def _is_quota_error(exc: Exception) -> bool:
-    """Detect Gemini quota / rate-limit errors so we abort cleanly."""
     s = str(exc).lower()
     return any(k in s for k in ("429", "resource_exhausted", "quota", "rate limit", "rate_limit"))
 
 
 # --------------------------------------------------------------------------- #
-class GeminiClassifier:
-    """LLM-as-classifier with on-disk caching and quota-aware retries."""
+class LLMClassifier:
+    """OpenRouter-backed classifier with disk caching + cost safeguards."""
 
     def __init__(self, cfg: LLMConfig):
         self.cfg = cfg
         self._examples: list[tuple[str, int]] = []
         self._client = None
         self._cache = _DiskCache(REPO_ROOT / cfg.cache_dir / f"{cfg.cache_name}.jsonl")
+        self._total_input_tokens = 0
+        self._total_output_tokens = 0
+        self._total_spent_usd = 0.0
 
     # ------------------------------------------------------------------ #
     def _get_client(self):
         if self._client is None:
-            from google import genai
+            from openai import OpenAI
 
-            key = os.environ.get("GEMINI_API_KEY")
+            key = os.environ.get("OPENROUTER_API_KEY")
             if not key:
-                raise RuntimeError(
-                    "GEMINI_API_KEY not set. `export GEMINI_API_KEY=...` or put it in .env"
-                )
-            self._client = genai.Client(api_key=key)
+                raise RuntimeError("OPENROUTER_API_KEY not set. Put it in .env or export it.")
+            self._client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=key,
+                timeout=self.cfg.request_timeout_s,
+                default_headers={
+                    "HTTP-Referer": "https://github.com/ShahnawazKakarh/hate-speech-detection",
+                    "X-Title": "hsd v0.2.1 LLM baselines",
+                },
+            )
         return self._client
 
     # ------------------------------------------------------------------ #
-    def fit(self, texts: list[str], labels: list[int]) -> GeminiClassifier:
+    def fit(self, texts: list[str], labels: list[int]) -> LLMClassifier:
         if self.cfg.regime == "few_shot":
             rng = random.Random(self.cfg.seed)
             pos = [i for i, y in enumerate(labels) if y == 1]
@@ -198,51 +244,86 @@ class GeminiClassifier:
             )
             rng.shuffle(picks)
             self._examples = [(texts[i], labels[i]) for i in picks]
-            log.info("few-shot examples: %d", len(self._examples))
+            log.info(
+                "few-shot exemplars: %d (%d hate, %d non-hate)",
+                len(self._examples),
+                sum(1 for _, y in self._examples if y == 1),
+                sum(1 for _, y in self._examples if y == 0),
+            )
         else:
             self._examples = []
         return self
 
     # ------------------------------------------------------------------ #
+    def _cost_for_call(self, input_tokens: int, output_tokens: int) -> float:
+        p = OPENROUTER_PRICING.get(self.cfg.model_name)
+        if p is None:
+            return 0.0
+        return input_tokens / 1e6 * p["input"] + output_tokens / 1e6 * p["output"]
+
+    def _estimate_cost(self, prompts: list[str]) -> tuple[float, float, float]:
+        """Return (est_usd, est_input_tokens, est_output_tokens)."""
+        chars = sum(len(p) for p in prompts)
+        input_tokens = chars / 4.0  # rough industry-standard heuristic
+        output_tokens = len(prompts) * self.cfg.avg_output_tokens_estimate
+        return (
+            self._cost_for_call(int(input_tokens), int(output_tokens)),
+            input_tokens,
+            output_tokens,
+        )
+
+    # ------------------------------------------------------------------ #
     def _call(self, prompt: str) -> dict:
-        key = _DiskCache.key_for(prompt)
+        key = _DiskCache.key_for(self.cfg.model_name, prompt)
         cached = self._cache.get(key)
         if cached is not None:
             return cached
 
         client = self._get_client()
-        from google.genai import types
-
-        gen_config = types.GenerateContentConfig(
-            temperature=self.cfg.temperature,
-            max_output_tokens=self.cfg.max_output_tokens,
-            response_mime_type="application/json",
-            response_schema={
-                "type": "object",
-                "properties": {
-                    "label": {"type": "string", "enum": ["hate", "non-hate"]},
-                    "p_hate": {"type": "number"},
-                },
-                "required": ["label", "p_hate"],
-            },
-            # Disable Gemini 2.5 Flash's thinking budget; we want all output tokens
-            # spent on the JSON, not on internal reasoning that gets dropped.
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
-        )
-
         last_err: Exception | None = None
         for attempt in range(self.cfg.retry_attempts):
             try:
-                response = client.models.generate_content(
+                response = client.chat.completions.create(
                     model=self.cfg.model_name,
-                    contents=prompt,
-                    config=gen_config,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=self.cfg.temperature,
+                    max_tokens=self.cfg.max_output_tokens,
+                    response_format={"type": "json_object"},
                 )
-                text = (response.text or "").strip()
+                text = (response.choices[0].message.content or "").strip()
                 label_int, p_hate = _parse_response_text(text)
-                out = {"label": label_int, "p_hate": p_hate, "raw": text}
+
+                usage = response.usage
+                in_tok = int(usage.prompt_tokens) if usage else 0
+                out_tok = int(usage.completion_tokens) if usage else 0
+                call_cost = self._cost_for_call(in_tok, out_tok)
+
+                self._total_input_tokens += in_tok
+                self._total_output_tokens += out_tok
+                self._total_spent_usd += call_cost
+
+                out = {
+                    "label": label_int,
+                    "p_hate": p_hate,
+                    "raw": text,
+                    "input_tokens": in_tok,
+                    "output_tokens": out_tok,
+                    "cost_usd": call_cost,
+                }
                 self._cache.put(key, out)
+
+                # Hard cost ceiling — abort if the running total is over budget
+                if self._total_spent_usd > self.cfg.cost_ceiling_usd:
+                    raise CostCeilingHit(
+                        f"Running spend ${self._total_spent_usd:.4f} > ceiling "
+                        f"${self.cfg.cost_ceiling_usd:.4f}"
+                    )
                 return out
+            except CostCeilingHit:
+                raise
             except Exception as e:  # noqa: BLE001
                 last_err = e
                 if _is_quota_error(e):
@@ -250,7 +331,7 @@ class GeminiClassifier:
                     raise QuotaExhausted(str(e)) from e
                 sleep = self.cfg.retry_backoff_s * (2**attempt)
                 log.warning(
-                    "gemini call failed (attempt %d/%d): %s; sleeping %.1fs",
+                    "openrouter call failed (attempt %d/%d): %s; sleeping %.1fs",
                     attempt + 1,
                     self.cfg.retry_attempts,
                     e,
@@ -258,73 +339,126 @@ class GeminiClassifier:
                 )
                 time.sleep(sleep)
 
-        log.error("gemini call failed permanently: %s", last_err)
-        out = {"label": 0, "p_hate": 0.0, "raw": f"<error: {last_err}>", "errored": True}
-        self._cache.put(key, out)
-        return out
+        # Retries exhausted — persist as errored so it retries on next run
+        log.error("call failed permanently: %s", last_err)
+        err_entry = {"errored": True, "error": str(last_err)}
+        self._cache.put(key, err_entry)
+        # Return a conservative response for this row
+        return {"label": 0, "p_hate": 0.0, "raw": f"<error: {last_err}>", "errored": True}
 
     # ------------------------------------------------------------------ #
-    def _classify_one(self, text: str) -> tuple[int, float]:
-        examples = self._examples if self.cfg.regime == "few_shot" else None
-        user_prompt = _build_user_prompt(text, examples)
-        full_prompt = f"{SYSTEM_PROMPT}\n\n{user_prompt}"
-        resp = self._call(full_prompt)
-        return int(resp["label"]), float(resp["p_hate"])
+    def _preflight(self, prompts: list[str]) -> None:
+        """Count cache misses, estimate cost, guardrail with env var confirmation."""
+        misses = [
+            p
+            for p in prompts
+            if self._cache.get(_DiskCache.key_for(self.cfg.model_name, p)) is None
+        ]
+        n_cached = len(prompts) - len(misses)
+        est_usd, _, _ = self._estimate_cost(misses)
 
+        log.info(
+            "pre-flight: %d total | %d cached (free) | %d new calls | model=%s",
+            len(prompts),
+            n_cached,
+            len(misses),
+            self.cfg.model_name,
+        )
+        log.info(
+            "pre-flight cost estimate: $%.4f (ceiling $%.2f, confirm-over $%.2f)",
+            est_usd,
+            self.cfg.cost_ceiling_usd,
+            self.cfg.confirm_over_usd,
+        )
+
+        if est_usd > self.cfg.cost_ceiling_usd:
+            log.error(
+                "pre-flight estimate $%.4f exceeds cost_ceiling_usd $%.4f. "
+                "Raise the ceiling in the config only if you really want to spend that much.",
+                est_usd,
+                self.cfg.cost_ceiling_usd,
+            )
+            sys.exit(1)
+
+        if est_usd > self.cfg.confirm_over_usd and os.environ.get("HSD_CONFIRM_COST") != "1":
+            log.error(
+                "pre-flight estimate $%.4f exceeds confirm-over threshold $%.4f. "
+                "Set HSD_CONFIRM_COST=1 to proceed:\n"
+                "    HSD_CONFIRM_COST=1 python -m hsd.train --config <config>",
+                est_usd,
+                self.cfg.confirm_over_usd,
+            )
+            sys.exit(1)
+
+    # ------------------------------------------------------------------ #
     def predict_proba(self, texts: list[str]) -> np.ndarray:
-        scores = np.zeros(len(texts), dtype=float)
-        cached_hits = 0
-        new_calls = 0
-
-        # Pre-build prompts once so we can count cache hits before any API call
+        # Build all prompts once
         prompts = []
         for t in texts:
             examples = self._examples if self.cfg.regime == "few_shot" else None
-            up = _build_user_prompt(t, examples)
-            prompts.append(f"{SYSTEM_PROMPT}\n\n{up}")
-        keys = [_DiskCache.key_for(p) for p in prompts]
-        n_cached = sum(1 for k in keys if self._cache.get(k) is not None)
-        log.info(
-            "predict: %d total, %d cached (%.1f%%), %d new calls needed",
-            len(texts),
-            n_cached,
-            100.0 * n_cached / max(1, len(texts)),
-            len(texts) - n_cached,
-        )
+            prompts.append(_build_user_prompt(t, examples))
 
-        pbar = tqdm(texts, desc=self.cfg.cache_name, ncols=90)
-        for i, _ in enumerate(pbar):
+        self._preflight(prompts)
+
+        scores = np.zeros(len(texts), dtype=float)
+        n_cached = 0
+        n_new = 0
+
+        pbar = tqdm(
+            range(len(texts)),
+            desc=self.cfg.cache_name,
+            ncols=100,
+            postfix={"$": "0.0000"},
+        )
+        for i in pbar:
+            key = _DiskCache.key_for(self.cfg.model_name, prompts[i])
             try:
-                if self._cache.get(keys[i]) is not None:
-                    cached_hits += 1
-                    resp = self._cache.get(keys[i])
-                    scores[i] = float(resp["p_hate"])
+                cached = self._cache.get(key)
+                if cached is not None:
+                    n_cached += 1
+                    scores[i] = float(cached["p_hate"])
                 else:
-                    # Pace only fresh calls, not cache hits
-                    if new_calls > 0 and self.cfg.request_interval_s > 0:
+                    if n_new > 0 and self.cfg.request_interval_s > 0:
                         time.sleep(self.cfg.request_interval_s)
                     resp = self._call(prompts[i])
                     scores[i] = float(resp["p_hate"])
-                    new_calls += 1
+                    n_new += 1
+                    pbar.set_postfix({"$": f"{self._total_spent_usd:.4f}"})
             except QuotaExhausted as e:
                 pbar.close()
-                done = i
                 log.error(
-                    "\n\nQUOTA EXHAUSTED at row %d / %d (%.1f%% done).\n"
-                    "Progress saved to cache: %s\n"
-                    "Re-run the same config to resume from row %d.\n"
-                    "Underlying error: %s\n",
-                    done,
+                    "\nQUOTA EXHAUSTED at row %d / %d (%.1f%% done). "
+                    "Progress cached at %s. Re-run to resume.\n"
+                    "Underlying error: %s",
+                    i,
                     len(texts),
-                    100.0 * done / len(texts),
+                    100.0 * i / len(texts),
                     self._cache.path,
-                    done,
                     e,
                 )
-                # Exit non-zero so shell scripts can detect it
                 sys.exit(2)
+            except CostCeilingHit as e:
+                pbar.close()
+                log.error(
+                    "\nCOST CEILING HIT at row %d / %d ($%.4f). "
+                    "Progress cached at %s. Raise cost_ceiling_usd and re-run "
+                    "if you want to continue.\n%s",
+                    i,
+                    len(texts),
+                    self._total_spent_usd,
+                    self._cache.path,
+                    e,
+                )
+                sys.exit(3)
 
-        log.info("done: %d cache hits, %d new calls", cached_hits, new_calls)
+        log.info(
+            "predict_proba done: %d cached + %d new calls | spent $%.4f | " "tokens: in=%d out=%d",
+            n_cached,
+            n_new,
+            self._total_spent_usd,
+            self._total_input_tokens,
+            self._total_output_tokens,
+        )
         return scores
 
     def predict(self, texts: list[str], threshold: float = 0.5) -> np.ndarray:
@@ -337,14 +471,21 @@ class GeminiClassifier:
         meta = {
             "cfg": self.cfg.__dict__,
             "examples": self._examples,
+            "spend_usd": self._total_spent_usd,
+            "input_tokens": self._total_input_tokens,
+            "output_tokens": self._total_output_tokens,
         }
         (path / "llm_state.json").write_text(json.dumps(meta, indent=2))
 
     @classmethod
-    def load(cls, path: str | Path) -> GeminiClassifier:
+    def load(cls, path: str | Path) -> LLMClassifier:
         path = Path(path)
         meta = json.loads((path / "llm_state.json").read_text())
         cfg = LLMConfig(**meta["cfg"])
         obj = cls(cfg)
         obj._examples = [tuple(e) for e in meta["examples"]]
         return obj
+
+
+# Backward-compat alias for older imports
+GeminiClassifier = LLMClassifier

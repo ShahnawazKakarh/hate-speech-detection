@@ -128,7 +128,7 @@ def _train_llm(cfg: dict, splits, three_way: bool):
     """LLM-as-classifier (Gemini). Binary only for v0.2.1."""
     if three_way:
         raise NotImplementedError("3-way LLM classification not supported in v0.2.1")
-    from hsd.models.llm import GeminiClassifier, LLMConfig
+    from hsd.models.llm import LLMClassifier, LLMConfig
 
     out = ensure_dir(ARTIFACTS_DIR / cfg["run_name"])
     mkwargs = dict(cfg.get("model", {}))
@@ -137,7 +137,7 @@ def _train_llm(cfg: dict, splits, three_way: bool):
     mkwargs.setdefault("cache_name", cfg["run_name"])
     mcfg = LLMConfig(**mkwargs)
 
-    model = GeminiClassifier(mcfg).fit(
+    model = LLMClassifier(mcfg).fit(
         splits.texts("train"),
         _labels(splits, "train", three_way=False),
     )
