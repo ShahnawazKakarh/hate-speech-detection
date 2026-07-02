@@ -1,0 +1,12 @@
+\begin{tabular}{llcccccc}
+\toprule
+Method & Dataset & Acc & P & R & F1\textsubscript{hate} & F1\textsubscript{macro} & AUC \\
+\midrule
+DistilBERT (v0.1) & davidson & 0.9391 & 0.4583 & 0.3077 & 0.3682 & 0.6681 & 0.8966 \\
+Gemini 2.5 Flash (zero-shot) & davidson & 0.9129 & 0.3270 & 0.4825 & 0.3898 & 0.6715 & 0.7974 \\
+Gemini 2.5 Flash (4-shot) & davidson & 0.8814 & 0.2773 & 0.6573 & 0.3900 & 0.6622 & 0.8411 \\
+DistilBERT (v0.1) & hatexplain & 0.8503 & 0.7593 & 0.7542 & 0.7568 & 0.8243 & 0.9088 \\
+Gemini 2.5 Flash (zero-shot) & hatexplain & 0.7204 & 0.5264 & 0.9394 & 0.6747 & 0.7148 & 0.8860 \\
+Gemini 2.5 Flash (4-shot) & hatexplain & 0.7801 & 0.5918 & 0.9276 & 0.7226 & 0.7703 & 0.8903 \\
+\bottomrule
+\end{tabular}

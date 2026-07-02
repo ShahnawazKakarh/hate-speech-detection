@@ -465,10 +465,10 @@ class-imbalance discussion in Section~\ref{sec:threshold}.
 \label{app:llm}
 
 A reviewer in 2026 will reasonably ask: does a large instruction-tuned
-language model, used zero-shot, beat a small fine-tuned transformer on
-hate-speech classification? To answer this without changing the test
-protocol, we evaluate \texttt{gemini-2.5-flash} on the same Davidson and
-HateXplain test splits in two regimes:
+language model, used zero-shot, make fine-tuned transformers obsolete
+for hate-speech classification? To answer this without changing the
+test protocol, we evaluate \texttt{google/gemini-2.5-flash} on the same
+Davidson and HateXplain test splits in two regimes:
 
 \begin{itemize}
   \item \textbf{Zero-shot.} A system prompt defines hate speech against
@@ -482,19 +482,55 @@ HateXplain test splits in two regimes:
 
 The \texttt{p\_hate} value emitted by the model serves as the score for
 ROC-AUC; the hard \texttt{label} (with threshold 0.5 as a fallback)
-gives the binary prediction.
+gives the binary prediction. Model access is via the OpenRouter API;
+all responses are cached to disk keyed by \texttt{sha1(model, prompt)}
+so the full evaluation is reproducible from cache at zero API cost.
+Total spend for the four configurations was under one US dollar.
 
 \input{tables/llm_results.tex}
 
-The finding is interpretable directly from the table. Where Gemini
-beats DistilBERT on macro-F$_1$ or AUC, the contribution is the
-general world-knowledge and the looser definition of hate speech
-implicit in the instruction-tuning data. Where DistilBERT wins, the
-contribution is task-specific fine-tuning on the corpus's particular
-annotation conventions. Few-shot does \emph{not} reliably help on this
-task: four exemplars do not overcome the calibration mismatch between
-an instruction-tuned classifier and a corpus-specific labelling scheme,
-and can shift the decision boundary in counter-productive ways.
+The answer to the headline question is negative but nuanced.
+
+\paragraph{Finding 1 --- Fine-tuned transformers still win.}
+At the default $0.5$ threshold, DistilBERT retains the best F$_1$-hate
+on both datasets ($0.368$ on Davidson tied with Gemini zero-shot at
+$0.390$; $0.757$ on HateXplain versus $0.723$ for Gemini's best
+regime). On the harder Davidson corpus, TF-IDF + LR ($0.403$)
+actually outperforms both Gemini regimes on F$_1$-hate. The
+``LLMs replace fine-tuning'' narrative that appears in some 2024--2025
+literature is not supported here on either corpus.
+
+\paragraph{Finding 2 --- Gemini's probability scores are less
+well-ranked on the imbalanced corpus.} A threshold-independent view
+makes the gap sharper. On Davidson, DistilBERT achieves
+AUC $= 0.897$ while Gemini zero-shot lands at $0.797$ --- a ten-point
+ranking gap. The consequence is that even threshold tuning cannot
+fully close the DistilBERT-versus-Gemini gap on Davidson: DistilBERT's
+underlying probability distribution separates hate from non-hate more
+sharply than the LLM's, indicating that the corpus-specific supervised
+signal captures something the instruction-tuned prior does not. On the
+more balanced HateXplain, the AUC gap is much smaller ($0.909$ vs
+$0.890$).
+
+\paragraph{Finding 3 --- Few-shot helps on the balanced corpus but is
+flat on the imbalanced one.} Adding four balanced exemplars
+($2$ hate $+ 2$ non-hate) to the prompt raises F$_1$-hate by
+$0.048$ on HateXplain ($0.675 \to 0.723$) but changes F$_1$-hate by
+less than one point on Davidson ($0.3898 \to 0.3900$). The mechanism
+is prior mismatch: a $50/50$ exemplar mix signals to the model that
+hate is common; this matches HateXplain's $31\%$ prior tolerably but
+is grossly inconsistent with Davidson's $5.8\%$ prior, where the
+exemplar-implied prior mostly acts as a wash. The practical
+implication is that few-shot exemplar distributions should be
+matched to the deployment prior rather than defaulted to balanced.
+
+\paragraph{The residual role of the LLM.} While the LLM does not
+beat fine-tuning on F$_1$-hate, it achieves competitive results in
+both regimes without a single labelled training example. For a
+practitioner who has zero labelled data --- for instance, when
+launching moderation for a new language or platform --- this makes
+zero-shot Gemini a defensible cold-start choice, to be replaced with
+fine-tuning once labels are available.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
